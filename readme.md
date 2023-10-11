@@ -1,20 +1,44 @@
-# Compiling in Ubuntu
+# Sobre
 
-Packages:
+Trabalho da disciplina de Sistemas Operacionais.
+Criar um Sistema Operacional simulado para a arquitetura vista na disciplina de Arquitetura de Computadores.
+
+---
+
+## Sobre a arquitetura
+
+Consultar no endereço do Assembler:
+https://github.com/ehmcruz/arq-sim-assembler
+
+---
+
+# Guia no Linux (Ubuntu)
+
+## Compilando no Linux
+
+Pacotes:
 - libncurses-dev
 
-make CONFIG_TARGET_LINUX=1
+**make CONFIG_TARGET_LINUX=1**
 
-# Compiling in Windows
+## Rodando no Linux
 
-Considering MSYS2:
+**./arq-sim-so**
+
+---
+
+# Guia no Windows
+
+## Compilando no Windows (usando MSYS2)
+
+Pacotes:
 - mingw-w64-ucrt-x86_64-ncurses
 
-make CONFIG_TARGET_WINDOWS=1
+**make CONFIG_TARGET_WINDOWS=1**
 
-# Running in Windows
+## Rodando no Windows
 
-Considering a MSYS2 terminal:
+Considerando o terminal do MSYS2:
 
-unset TERM
-./arq-sim-so.exe
+**unset TERM**    
+**./arq-sim-so.exe**
