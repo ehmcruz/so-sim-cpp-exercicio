@@ -12,6 +12,15 @@ https://github.com/ehmcruz/arq-sim-assembler
 
 ---
 
+## Dependências
+
+Depende das seguintes bibliotecas:
+
+- NCurses
+- My-lib (https://github.com/ehmcruz/my-lib). O Makefile está configurado para buscar o projeto **my-lib** no mesmo diretório pai que este projeto.
+
+---
+
 # Guia no Linux (Ubuntu)
 
 ## Compilando no Linux
