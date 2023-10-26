@@ -233,8 +233,8 @@ public:
 	void turn_off ();
 
 private:
-	void execute_r (const Mylib::Bitset<16> instruction);
-	void execute_i (const Mylib::Bitset<16> instruction);
+	void execute_r (const Mylib::BitSet<16> instruction);
+	void execute_i (const Mylib::BitSet<16> instruction);
 
 	inline uint16_t vmem_read (const uint16_t vaddr)
 	{

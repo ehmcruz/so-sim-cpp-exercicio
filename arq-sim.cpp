@@ -309,7 +309,7 @@ void Cpu::run_cycle ()
 		return;
 	}
 
-	const Mylib::Bitset<16> instruction = this->vmem_read(this->pc);
+	const Mylib::BitSet<16> instruction = this->vmem_read(this->pc);
 
 	if (this->has_interrupt) {
 		this->has_interrupt = false;
@@ -356,7 +356,7 @@ void Cpu::force_interrupt (const InterruptCode interrupt_code)
 	this->interrupt(interrupt_code);
 }
 
-void Cpu::execute_r (const Mylib::Bitset<16> instruction)
+void Cpu::execute_r (const Mylib::BitSet<16> instruction)
 {
 	enum class OpcodeR : uint16_t {
 		Add = 0,
@@ -370,10 +370,10 @@ void Cpu::execute_r (const Mylib::Bitset<16> instruction)
 		Syscall = 63
 	};
 
-	const OpcodeR opcode = static_cast<OpcodeR>( instruction(9, 6).underlying() );
-	const uint16_t dest = instruction(6, 3).underlying();
-	const uint16_t op1 = instruction(3, 3).underlying();
-	const uint16_t op2 = instruction(0, 3).underlying();
+	const OpcodeR opcode = static_cast<OpcodeR>( instruction(9, 6) );
+	const uint16_t dest = instruction(6, 3);
+	const uint16_t op1 = instruction(3, 3);
+	const uint16_t op2 = instruction(0, 3);
 
 	switch (opcode) {
 		using enum OpcodeR;
@@ -432,7 +432,7 @@ void Cpu::execute_r (const Mylib::Bitset<16> instruction)
 	}
 }
 
-void Cpu::execute_i (const Mylib::Bitset<16> instruction)
+void Cpu::execute_i (const Mylib::BitSet<16> instruction)
 {
 	enum class OpcodeI : uint16_t {
 		Jump = 0,
@@ -440,9 +440,9 @@ void Cpu::execute_i (const Mylib::Bitset<16> instruction)
 		Mov = 3
 	};
 
-	const OpcodeI opcode = static_cast<OpcodeI>( instruction(13, 2).underlying() );
-	const uint16_t reg = instruction(10, 3).underlying();
-	const uint16_t imed = instruction(0, 9).underlying();
+	const OpcodeI opcode = static_cast<OpcodeI>( instruction(13, 2) );
+	const uint16_t reg = instruction(10, 3);
+	const uint16_t imed = instruction(0, 9);
 
 	switch (opcode) {
 		using enum OpcodeI;

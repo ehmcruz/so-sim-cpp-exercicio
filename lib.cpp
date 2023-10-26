@@ -80,7 +80,7 @@ std::vector<uint16_t> load_from_disk_to_16bit_buffer (const std::string_view fna
 	std::vector<uint16_t> buffer(file_size_words);
 
 	if (!load_from_disk_to_buffer(fname, buffer.data(), file_size_words * sizeof(uint16_t)))
-		throw Mylib::Exception("cannot load file ", fname);
+		throw Mylib::Exception(Mylib::build_str_from_stream("cannot load file ", fname));
 
 	return buffer;
 }
