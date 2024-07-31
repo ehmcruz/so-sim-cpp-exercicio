@@ -3,8 +3,12 @@
 
 #include <array>
 #include <vector>
+#include <list>
 #include <string>
 #include <string_view>
+#include <fstream>
+#include <utility>
+#include <memory>
 
 #include <cstdint>
 
@@ -31,6 +35,7 @@ namespace Arch {
 enum class InterruptCode : uint16_t
 {
 	Keyboard,
+	Disk,
 	Timer,
 	GPF
 };
@@ -137,6 +142,53 @@ public:
 	{
 		this->videos[ std::to_underlying(video) ].dump();
 	}
+};
+
+// ---------------------------------------
+
+class Disk
+{
+private:
+	struct InternalDescriptor {
+		std::fstream file;
+		std::string fname;
+	};
+
+public:
+	using Descriptor = std::list<InternalDescriptor>::iterator;
+
+	struct Job {
+		enum class Type {
+			Read,
+			Write
+		};
+	
+		uint64_t id;
+		Type type;
+		Descriptor descriptor;
+		std::vector<uint8_t> *buffer;
+	};
+
+private:
+	std::list<InternalDescriptor> descriptors;
+	OO_ENCAPSULATE_SCALAR_CONST_INIT_READONLY(uint32_t, sector_size_bytes, Config::disk_sector_size)
+	std::list< std::unique_ptr<Job> > queue;
+	uint32_t count = 0;
+	uint64_t next_id = 0;
+
+public:
+	Disk ();
+	~Disk ();
+
+	Descriptor open (const std::string_view fname);
+	void close (Descriptor descriptor);
+	uint32_t size (Descriptor descriptor) const;
+	uint64_t request_read_sector (Descriptor descriptor, std::vector<uint8_t>& buffer);
+	void run_cycle ();
+	std::unique_ptr<Job> fetch_finished_job ();
+
+private:
+	void process_job (Job& job);
 };
 
 // ---------------------------------------

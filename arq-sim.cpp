@@ -233,6 +233,128 @@ void Terminal::run_cycle ()
 
 // ---------------------------------------
 
+Disk::Disk ()
+{
+	
+}
+
+Disk::~Disk ()
+{
+	for (auto& d: this->descriptors)
+		if (d.file.is_open())
+			d.file.close();
+}
+
+Disk::Descriptor Disk::open (const std::string_view fname)
+{
+	InternalDescriptor d;
+	
+	d.fname = fname;
+	d.file.open(fname.data(), std::ios::binary | std::ios_base::in);
+
+	this->descriptors.push_back( std::move(d) );
+}
+
+void Disk::close (Descriptor descriptor)
+{
+	InternalDescriptor& d = *descriptor;
+
+	if (d.file.is_open())
+		d.file.close();
+	
+	this->descriptors.erase(descriptor);
+}
+
+uint32_t Disk::size (Descriptor descriptor) const
+{
+	InternalDescriptor& d = *descriptor;
+	auto& file = d.file;
+
+	const auto pos = file.tellg();
+	file.seekg(0, std::ios::end);
+	const auto size = file.tellg();
+	file.seekg(pos);
+
+	return size;
+}
+
+uint64_t Disk::request_read_sector (Descriptor descriptor, std::vector<uint8_t>& buffer)
+{
+	InternalDescriptor& d = *descriptor;
+	auto& file = d.file;
+
+	if (file.is_open()) {
+		if (this->queue.empty())
+			this->count = 0;
+		
+		const uint64_t id = this->next_id++;
+		
+		this->queue.push_back( Job {
+			.id = id,
+			.type = Job::Type::Read,
+			.descriptor = descriptor,
+			.buffer = &buffer
+			} );
+		
+		return id;
+	}
+	else
+		Mylib::Exception(Mylib::build_str_from_stream("file ", d.fname, " is not open"));
+}
+
+void Disk::run_cycle ()
+{
+	if (this->queue.empty())
+		return;
+	
+	if (this->count >= Config::disk_interrupt_cycles) {
+		cpu->interrupt(InterruptCode::Disk);
+	}
+	else
+		this->count++;
+}
+
+std::unique_ptr<Disk::Job> Disk::fetch_finished_job ()
+{
+	if (this->queue.empty())
+		throw Mylib::Exception("no job in queue");
+	if (this->count < Config::disk_interrupt_cycles)
+		throw Mylib::Exception("job not finished");
+
+	auto& job = this->queue.front();
+	this->queue.pop_front();
+
+	return job;
+}
+
+void Disk::process_job (Job& job)
+{
+	InternalDescriptor& d = *job.descriptor;
+	auto& file = d.file;
+	auto& buffer = *job.buffer;
+
+	if (file.is_open()) {
+		if (job.type == Job::Type::Read) {
+			if (!file.eof()) {
+				if (buffer.size() != this->sector_size_bytes)
+					buffer.resize(this->sector_size_bytes);
+				file.read(reinterpret_cast<char*>(buffer.data()), this->sector_size_bytes);
+				const auto readed = file.gcount();
+				if (readed < this->sector_size_bytes)
+					buffer.resize(readed);
+			}
+			else
+				buffer.clear();
+		}
+		else
+			Mylib::Exception("unknown job type");
+	}
+	else
+		throw Mylib::Exception(Mylib::build_str_from_stream("file ", d.fname, " is not open"));
+}
+
+// ---------------------------------------
+
 Memory::Memory ()
 {
 	for (auto& v: this->data)

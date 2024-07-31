@@ -13,6 +13,17 @@ namespace Config {
 
 	inline constexpr uint32_t timer_interrupt_cycles = 1024;
 
-}
+	inline constexpr uint32_t page_size_bits = 4;
 
+	inline constexpr uint32_t disk_interrupt_cycles = 1024;
+
+	// ---------------------------------------
+
+	// Don't change this
+
+	inline constexpr uint32_t page_size = 1 << page_size_bits;
+
+	inline constexpr uint32_t disk_sector_size = page_size;
+
+}
 #endif
