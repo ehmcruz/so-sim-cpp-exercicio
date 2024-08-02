@@ -154,8 +154,8 @@ private:
 		Idle,
 		SettingFname,
 		WaitingRead,
-		Reading,
-		Uploading
+		ReadingReadSize,
+		ReadingSector,
 	};
 
 	struct FileDescriptor {
@@ -172,6 +172,8 @@ private:
 	std::string fname;
 	uint16_t data_written;
 	std::vector<uint8_t> buffer;
+	uint32_t buffer_pos;
+	FileDescriptor *current_file_descriptor = nullptr;
 
 public:
 	Disk (Computer& computer);
@@ -183,7 +185,7 @@ public:
 
 private:
 	void process_cmd (const uint16_t cmd_);
-	void process_data_read ();
+	uint16_t process_data_read ();
 	void process_data_write (const uint16_t value);
 
 	uint32_t size (Descriptor descriptor) const;

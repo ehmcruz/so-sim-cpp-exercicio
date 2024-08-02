@@ -291,23 +291,27 @@ void Disk::run_cycle ()
 
 		case WaitingRead:
 			if (this->count >= Config::disk_interrupt_cycles) {
+				auto& file = this->current_file_descriptor->file;
+
 				if (!file.eof()) {
-					if (buffer.size() != this->sector_size_bytes)
-						buffer.resize(this->sector_size_bytes);
-					file.read(reinterpret_cast<char*>(buffer.data()), this->sector_size_bytes);
+					if (this->buffer.size() != this->sector_size_bytes)
+						this->buffer.resize(this->sector_size_bytes);
+					file.read(reinterpret_cast<char*>(this->buffer.data()), this->sector_size_bytes);
 					const auto readed = file.gcount();
 					if (readed < this->sector_size_bytes)
-						buffer.resize(readed);
+						this->buffer.resize(readed);
 				}
 				else
-					buffer.clear();
+					this->buffer.clear();
 
-				this->state = State::Reading;
-				this->computer.get_cpu().interrupt(InterruptCode::Disk);
+				this->state = State::ReadingReadSize;
 			}
 			else
 				this->count++;
 		break;
+
+		case ReadingReadSize:
+			this->computer.get_cpu().interrupt(InterruptCode::Disk);
 
 		default: ;
 	}
@@ -321,7 +325,7 @@ uint16_t Disk::read (const uint16_t port)
 		using enum Config::IO_Ports;
 
 		case DiskData:
-			this->process_data_read();
+			return this->process_data_read();
 		break;
 
 		default:
@@ -369,6 +373,7 @@ void Disk::process_cmd (const uint16_t cmd_)
 			desc->fname = std::move(this->fname);
 			desc->file.open(fname.data(), std::ios::binary | std::ios_base::in);
 			this->file_descriptors.insert(std::make_pair(id, std::move(desc)));
+			this->current_file_descriptor = desc.get();
 
 			this->state = State::Idle;
 		};
@@ -380,12 +385,19 @@ void Disk::process_cmd (const uint16_t cmd_)
 			auto& desc = it->second;
 			desc->file.close();
 			this->file_descriptors.erase(it);
+			this->current_file_descriptor = nullptr;
 		};
 		break;
 
-		case ReadFile:
+		case ReadFile: {
 			this->state = State::WaitingRead;
 			this->count = 0;
+			auto it = this->file_descriptors.find(this->data_written);
+
+			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
+
+			this->current_file_descriptor = it->second.get();
+		}
 		break;
 
 		default:
@@ -393,9 +405,31 @@ void Disk::process_cmd (const uint16_t cmd_)
 	}
 }
 
-void Disk::process_data_read ()
+uint16_t Disk::process_data_read ()
 {
+	uint16_t r;
 
+	switch (this->state) {
+		using enum State;
+
+		case ReadingReadSize:
+			r = this->buffer.size();
+			this->buffer_pos = 0;
+			this->state = ReadingSector;
+		break;
+
+		case ReadingSector:
+			mylib_assert_exception_msg(this->buffer_pos < this->buffer.size(), "buffer is empty")
+			r = this->buffer[this->buffer_pos++];
+
+			if (this->buffer_pos == this->buffer.size())
+				this->state = Idle;
+
+		default:
+			mylib_throw_exception_msg("Disk invalid state ", static_cast<uint16_t>(this->state));
+	}
+
+	return r;
 }
 
 void Disk::process_data_write (const uint16_t value)
@@ -403,12 +437,16 @@ void Disk::process_data_write (const uint16_t value)
 	switch (this->state) {
 		using enum State;
 
+		case Idle:
+			this->data_written = value;
+		break;
+
 		case SettingFname:
 			this->fname += static_cast<char>(value);
 		break;
 
 		default:
-			this->data_written = value;
+			mylib_throw_exception_msg("Disk invalid state ", static_cast<uint16_t>(this->state));
 	}
 }
 
