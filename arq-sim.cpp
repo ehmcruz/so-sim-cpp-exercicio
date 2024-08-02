@@ -41,13 +41,7 @@ namespace Arch {
 
 // ---------------------------------------
 
-static Terminal *terminal = nullptr;
-static Cpu *cpu = nullptr;
-static Memory memory;
-static Timer timer;
-static volatile bool alive = true;
-static uint64_t cycle = 0;
-static std::string turn_off_msg;
+static Computer *computer = nullptr;
 
 // ---------------------------------------
 
@@ -192,7 +186,8 @@ void VideoOutput::dump () const
 
 // ---------------------------------------
 
-Terminal::Terminal ()
+Terminal::Terminal (Computer& computer)
+	: IO_Device(computer)
 {
 	const uint32_t total_w = COLS;
 	const uint32_t total_h = LINES;
@@ -211,7 +206,8 @@ Terminal::Terminal ()
 	// app video
 	this->videos.emplace_back(2*(total_w/3) + 1, total_w, 1, total_h);
 
-	this->has_char = false;
+	this->computer.set_io_port(Config::IO_Ports::TerminalSet, this);
+	this->computer.set_io_port(Config::IO_Ports::TerminalUpload, this);
 }
 
 Terminal::~Terminal ()
@@ -224,25 +220,84 @@ void Terminal::run_cycle ()
 
 	if (typed != ERR) {
 		this->has_char = true;
+
+		if (typed == KEY_BACKSPACE || typed == 127) // || '\b'
+			this->typed_char = 8;
+
 		this->typed_char = typed;
 	}
 
 	if (this->has_char)
-		cpu->interrupt(InterruptCode::Keyboard);
+		this->computer.get_cpu().interrupt(InterruptCode::Keyboard);
+}
+
+uint16_t Terminal::read (const uint16_t port)
+{
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case TerminalReadTypedChar:
+			this->has_char = false;
+			return this->typed_char;
+
+		default:
+			mylib_throw_exception_msg("Terminal read invalid port ", port);
+	}
+}
+
+void Terminal::write (const uint16_t port, const uint16_t value)
+{
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case TerminalSet:
+			this->current_video = static_cast<Type>(value);
+		break;
+
+		case TerminalUpload: {
+			char str[2] = { static_cast<char>(value), 0 };
+			this->videos[ std::to_underlying(this->current_video) ].print(str);
+		}
+		break;
+
+		default:
+			mylib_throw_exception_msg("Terminal write invalid port ", port);
+	}
 }
 
 // ---------------------------------------
 
-Disk::Disk ()
+Disk::Disk (Computer& computer)
+	: IO_Device(computer)
 {
-	
 }
 
 Disk::~Disk ()
 {
-	for (auto& d: this->descriptors)
-		if (d.file.is_open())
-			d.file.close();
+	for (auto& d: this->file_descriptors)
+		if (d->file.is_open())
+			d->file.close();
+}
+
+void Disk::run_cycle ()
+{
+	switch (state) {
+		using enum State;
+
+		case Reading:
+			if (this->count >= Config::disk_interrupt_cycles) {
+				this->computer.get_cpu().interrupt(InterruptCode::Disk);
+			}
+			else
+				this->count++;
+		break;
+
+		default: ;
+	}
 }
 
 Disk::Descriptor Disk::open (const std::string_view fname)
@@ -302,18 +357,6 @@ uint64_t Disk::request_read_sector (Descriptor descriptor, std::vector<uint8_t>&
 		Mylib::Exception(Mylib::build_str_from_stream("file ", d.fname, " is not open"));
 }
 
-void Disk::run_cycle ()
-{
-	if (this->queue.empty())
-		return;
-	
-	if (this->count >= Config::disk_interrupt_cycles) {
-		cpu->interrupt(InterruptCode::Disk);
-	}
-	else
-		this->count++;
-}
-
 std::unique_ptr<Disk::Job> Disk::fetch_finished_job ()
 {
 	if (this->queue.empty())
@@ -355,7 +398,8 @@ void Disk::process_job (Job& job)
 
 // ---------------------------------------
 
-Memory::Memory ()
+Memory::Memory (Computer& computer)
+	: Device(computer)
 {
 	for (auto& v: this->data)
 		v = 0;
@@ -364,6 +408,10 @@ Memory::Memory ()
 Memory::~Memory ()
 {
 	
+}
+
+void Memory::run_cycle ()
+{	
 }
 
 void Memory::dump (const uint16_t init, const uint16_t end) const
@@ -376,14 +424,49 @@ void Memory::dump (const uint16_t init, const uint16_t end) const
 
 // ---------------------------------------
 
+Timer::Timer (Computer& computer)
+	: IO_Device(computer)
+{
+}
+
 void Timer::run_cycle ()
 {
-	if (this->count >= Config::timer_interrupt_cycles) {
-		if (cpu->interrupt(InterruptCode::Timer))
+	if (this->count >= this->timer_interrupt_cycles) {
+		if (this->computer.get_cpu().interrupt(InterruptCode::Timer))
 			this->count = 0;
 	}
 	else
 		this->count++;
+}
+
+uint16_t Timer::read (const uint16_t port)
+{
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case TimerInterruptCycles:
+			return this->timer_interrupt_cycles;
+
+		default:
+			mylib_throw_exception_msg("Timer read invalid port ", port);
+	}
+}
+
+void Timer::write (const uint16_t port, const uint16_t value)
+{
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case TimerInterruptCycles:
+			this->timer_interrupt_cycles = value;
+
+		default:
+			mylib_throw_exception_msg("Timer read invalid port ", port);
+	}
 }
 
 // ---------------------------------------
@@ -596,6 +679,20 @@ void Cpu::dump () const
 	for (uint32_t i = 0; i < this->gprs.size(); i++)
 		terminal_print(Arch, " " << this->gprs[i])
 	terminal_println(Arch, "")
+}
+
+// ---------------------------------------
+
+Computer::Computer ()
+{
+	for (auto& port: this->io_ports)
+		port = nullptr;
+	
+	this->terminal = std::make_unique<Terminal>();
+	this->disk = std::make_unique<Disk>();
+	this->timer = std::make_unique<Timer>();
+	this->memory = std::make_unique<Memory>();
+	this->cpu = std::make_unique<Cpu>();
 }
 
 // ---------------------------------------

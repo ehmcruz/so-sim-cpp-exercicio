@@ -11,11 +11,20 @@ namespace Config {
 
 	inline constexpr uint16_t memsize_words = 1 << 15;
 
-	inline constexpr uint32_t timer_interrupt_cycles = 1024;
+	inline constexpr uint16_t timer_default_interrupt_cycles = 1024;
 
 	inline constexpr uint32_t page_size_bits = 4;
 
 	inline constexpr uint32_t disk_interrupt_cycles = 1024;
+
+	enum class IO_Ports : uint16_t {
+		TerminalSet               = 0,  // read
+		TerminalUpload            = 1,  // write
+		TerminalReadTypedChar     = 2,  // read
+		TimerInterruptCycles      = 3,  // read/write
+		DiskCmd                   = 4,  // write
+		DiskFileHandler		      = 5,  // read/write
+	};
 
 	// ---------------------------------------
 

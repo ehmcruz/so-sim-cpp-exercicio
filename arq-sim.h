@@ -44,6 +44,38 @@ const char* InterruptCode_str (const InterruptCode code);
 
 // ---------------------------------------
 
+class Computer;
+
+class Device
+{
+protected:
+	Computer& computer;
+
+public:
+	Device (Computer& computer)
+		: computer(computer)
+	{
+	}
+
+	virtual void run_cycle () = 0;
+};
+
+// ---------------------------------------
+
+class IO_Device : public Device
+{
+public:
+	IO_Device (Computer& computer)
+		: Device(computer)
+	{
+	}
+
+	virtual uint16_t read (const uint16_t port) = 0;
+	virtual void write (const uint16_t port, const uint16_t value) = 0;
+};
+
+// ---------------------------------------
+
 class VideoOutput
 {
 private:
@@ -71,10 +103,10 @@ private:
 
 // ---------------------------------------
 
-class Terminal
+class Terminal : public IO_Device
 {
 public:
-	enum class Type {
+	enum class Type : uint16_t {
 		Arch,
 		Kernel,
 		Command,
@@ -85,58 +117,17 @@ public:
 
 private:
 	std::vector<VideoOutput> videos;
-	int typed_char;
-	bool has_char;
+	uint16_t typed_char;
+	bool has_char = false;
+	Type current_video = Type::Arch;
 
 public:
-	Terminal ();
+	Terminal (Computer& computer);
 	~Terminal ();
 
-	void run_cycle ();
-
-	inline int read_typed_char ()
-	{
-		this->has_char = false;
-		return this->typed_char;
-	}
-
-	inline bool is_backspace (const int c)
-	{
-		return (c == KEY_BACKSPACE) || (c == 8) || (c == 127); // || '\b'
-	}
-
-	inline bool is_alpha (const int c)
-	{
-		return (c >= 'a') && (c <= 'z');
-	}
-
-	inline bool is_num (const int c)
-	{
-		return (c >= '0') && (c <= '9');
-	}
-
-	inline bool is_return (const int c)
-	{
-		return (c == '\n');
-	}
-
-	void print_str (const Type video, const std::string_view str)
-	{
-		this->videos[ std::to_underlying(video) ].print(str);
-	}
-
-	template <typename... Types>
-	void print (const Type video, Types&&... vars)
-	{
-		const std::string str = Mylib::build_str_from_stream(vars...);
-		this->print_str(video, str);
-	}
-
-	template <typename... Types>
-	void println (const Type video, Types&&... vars)
-	{
-		this->print(video, vars..., '\n');
-	}
+	void run_cycle () override final;
+	uint16_t read (const uint16_t port) override final;
+	void write (const uint16_t port, const uint16_t value) override final;
 
 	void dump (const Type video) const
 	{
@@ -146,61 +137,76 @@ public:
 
 // ---------------------------------------
 
-class Disk
+class Disk : public IO_Device
 {
+public:
+	enum class Cmd : uint16_t {
+		SetFnameStart      = 0,
+		SetFnameEnd        = 1,
+		OpenFile           = 2,
+		CloseFile          = 3,
+		ReadFile           = 4,
+		GetFileSize        = 5,
+	};
+
 private:
-	struct InternalDescriptor {
+	enum class State {
+		Idle,
+		WaitingFname,
+		Reading
+	};
+
+	struct FileDescriptor {
 		std::fstream file;
 		std::string fname;
 	};
 
-public:
-	using Descriptor = std::list<InternalDescriptor>::iterator;
-
 	struct Job {
 		enum class Type {
-			Read,
-			Write
+			Read
 		};
-	
-		uint64_t id;
+
 		Type type;
 		Descriptor descriptor;
-		std::vector<uint8_t> *buffer;
+		uint64_t sector;
+		std::vector<uint8_t> buffer;
 	};
 
 private:
-	std::list<InternalDescriptor> descriptors;
+	std::vector<std::unique_ptr<FileDescriptor>> file_descriptors;
 	OO_ENCAPSULATE_SCALAR_CONST_INIT_READONLY(uint32_t, sector_size_bytes, Config::disk_sector_size)
-	std::list< std::unique_ptr<Job> > queue;
 	uint32_t count = 0;
-	uint64_t next_id = 0;
+	State state = State::Idle;
 
 public:
-	Disk ();
+	Disk (Computer& computer);
 	~Disk ();
 
+	void run_cycle () override final;
+	uint16_t read (const uint16_t port) override final;
+	void write (const uint16_t port, const uint16_t value) override final;
+
+private:
 	Descriptor open (const std::string_view fname);
 	void close (Descriptor descriptor);
 	uint32_t size (Descriptor descriptor) const;
 	uint64_t request_read_sector (Descriptor descriptor, std::vector<uint8_t>& buffer);
-	void run_cycle ();
 	std::unique_ptr<Job> fetch_finished_job ();
-
-private:
 	void process_job (Job& job);
 };
 
 // ---------------------------------------
 
-class Memory
+class Memory : public Device
 {
 private:
 	std::array<uint16_t, Config::memsize_words> data;
 
 public:
-	Memory ();
+	Memory (Computer& computer);
 	~Memory ();
+
+	void run_cycle () override final;
 
 	inline uint16_t* get_raw ()
 	{
@@ -224,18 +230,23 @@ public:
 
 // ---------------------------------------
 
-class Timer
+class Timer : public IO_Device
 {
 private:
-	uint32_t count = 0;
+	uint16_t count = 0;
+	uint16_t timer_interrupt_cycles = Config::timer_default_interrupt_cycles;
 
 public:
-	void run_cycle ();
+	Timer (Computer& computer);
+
+	void run_cycle () override final;
+	uint16_t read (const uint16_t port) override final;
+	void write (const uint16_t port, const uint16_t value) override final;
 };
 
 // ---------------------------------------
 
-class Cpu
+class Cpu : public Device
 {
 private:
 	std::array<uint16_t, Config::nregs> gprs;
@@ -252,10 +263,10 @@ private:
 	Memory& memory;
 
 public:
-	Cpu ();
+	Cpu (Computer& computer);
 	~Cpu ();
 
-	void run_cycle ();
+	void run_cycle () override final;
 	void dump () const;
 
 	inline uint16_t get_gpr (const uint8_t code) const
@@ -278,6 +289,26 @@ public:
 	inline void pmem_write (const uint16_t paddr, const uint16_t value)
 	{
 		this->memory[paddr] = value;
+	}
+
+	inline uint16_t read_io (const uint16_t port)
+	{
+		return this->computer.get_io_port(port).read(port);
+	}
+
+	inline uint16_t read_io (const Config::IO_Ports port)
+	{
+		return this->read_io(std::to_underlying(port));
+	}
+
+	inline void write_io (const uint16_t port, const uint16_t value)
+	{
+		this->computer.get_io_port(port).write(port, value);
+	}
+
+	inline void write_io (const Config::IO_Ports port, const uint16_t value)
+	{
+		this->write_io(std::to_underlying(port), value);
 	}
 
 	bool interrupt (const InterruptCode interrupt_code);
@@ -310,6 +341,75 @@ private:
 		}
 
 		this->pmem_write(paddr, value);
+	}
+};
+
+// ---------------------------------------
+
+class Computer
+{
+private:
+	std::array<IO_Device*, 1 << 16> io_ports;
+	std::unique_ptr<Terminal> terminal;
+	std::unique_ptr<Disk> disk;
+	std::unique_ptr<Timer> timer;
+	std::unique_ptr<Memory> memory;
+	std::unique_ptr<Cpu> cpu;
+
+	bool alive = false;
+	uint64_t cycle = 0;
+
+	std::string turn_off_msg;
+
+public:
+	Computer ();
+
+	inline Terminal& get_terminal () const
+	{
+		return *this->terminal;
+	}
+
+	inline Disk& get_disk () const
+	{
+		return *this->disk;
+	}
+
+	inline Timer& get_timer () const
+	{
+		return *this->timer;
+	}
+
+	inline Memory& get_memory () const
+	{
+		return *this->memory;
+	}
+
+	inline Cpu& get_cpu () const
+	{
+		return *this->cpu;
+	}
+
+	inline void set_io_port (const uint16_t port, IO_Device *device)
+	{
+		mylib_assert_exception(port < this->io_ports.size())
+		this->io_ports[port] = device;
+	}
+
+	inline void set_io_port (const Config::IO_Ports port, IO_Device *device)
+	{
+		this->set_io_port(std::to_underlying(port), device);
+	}
+
+	inline IO_Device& get_io_port (const uint16_t port) const
+	{
+		mylib_assert_exception(port < this->io_ports.size())
+		mylib_assert_exception(this->io_ports[port] != nullptr)
+		return *this->io_ports[port];
+	}
+
+	inline IO_Device& get_io_port (const Config::IO_Ports port) const
+	{
+		return this->get_io_port(std::to_underlying(port));
 	}
 };
 
