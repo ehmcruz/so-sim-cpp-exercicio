@@ -2,6 +2,7 @@
 #include <utility>
 #include <bitset>
 #include <utility>
+#include <limits>
 
 #include <cstdint>
 #include <cstdlib>
@@ -288,8 +289,20 @@ void Disk::run_cycle ()
 	switch (state) {
 		using enum State;
 
-		case Reading:
+		case WaitingRead:
 			if (this->count >= Config::disk_interrupt_cycles) {
+				if (!file.eof()) {
+					if (buffer.size() != this->sector_size_bytes)
+						buffer.resize(this->sector_size_bytes);
+					file.read(reinterpret_cast<char*>(buffer.data()), this->sector_size_bytes);
+					const auto readed = file.gcount();
+					if (readed < this->sector_size_bytes)
+						buffer.resize(readed);
+				}
+				else
+					buffer.clear();
+
+				this->state = State::Reading;
 				this->computer.get_cpu().interrupt(InterruptCode::Disk);
 			}
 			else
@@ -300,15 +313,105 @@ void Disk::run_cycle ()
 	}
 }
 
-Disk::Descriptor Disk::open (const std::string_view fname)
+uint16_t Disk::read (const uint16_t port)
 {
-	InternalDescriptor d;
-	
-	d.fname = fname;
-	d.file.open(fname.data(), std::ios::binary | std::ios_base::in);
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
 
-	this->descriptors.push_back( std::move(d) );
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case DiskData:
+			this->process_data_read();
+		break;
+
+		default:
+			mylib_throw_exception_msg("Disk read invalid port ", port);
+	}
 }
+
+void Disk::write (const uint16_t port, const uint16_t value)
+{
+	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+
+	switch (port_enum) {
+		using enum Config::IO_Ports;
+
+		case DiskCmd:
+			this->process_cmd(value);
+		break;
+		
+		case DiskData:
+			this->process_data_write(value);
+		break;
+
+		default:
+			mylib_throw_exception_msg("Disk read invalid port ", port);
+	}
+}
+
+void Disk::process_cmd (const uint16_t cmd_)
+{
+	const Cmd cmd = static_cast<Cmd>(cmd_);
+
+	switch (cmd)
+	{
+		using enum Cmd;
+
+		case SetFname:
+			this->fname = "";
+			this->state = State::SettingFname;
+		break;
+
+		case OpenFile: {
+			auto desc = std::make_unique<FileDescriptor>();
+			const uint16_t id = this->next_id++;
+			mylib_assert_exception(id < std::numeric_limits<uint16_t>::max())
+			desc->fname = std::move(this->fname);
+			desc->file.open(fname.data(), std::ios::binary | std::ios_base::in);
+			this->file_descriptors.insert(std::make_pair(id, std::move(desc)));
+
+			this->state = State::Idle;
+		};
+		break;
+
+		case CloseFile: {
+			auto it = this->file_descriptors.find(this->data_written);
+			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
+			auto& desc = it->second;
+			desc->file.close();
+			this->file_descriptors.erase(it);
+		};
+		break;
+
+		case ReadFile:
+			this->state = State::WaitingRead;
+			this->count = 0;
+		break;
+
+		default:
+			mylib_throw_exception_msg("Disk invalid command ", cmd_);
+	}
+}
+
+void Disk::process_data_read ()
+{
+
+}
+
+void Disk::process_data_write (const uint16_t value)
+{
+	switch (this->state) {
+		using enum State;
+
+		case SettingFname:
+			this->fname += static_cast<char>(value);
+		break;
+
+		default:
+			this->data_written = value;
+	}
+}
+
 
 void Disk::close (Descriptor descriptor)
 {

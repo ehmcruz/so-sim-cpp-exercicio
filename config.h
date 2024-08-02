@@ -23,7 +23,7 @@ namespace Config {
 		TerminalReadTypedChar     = 2,  // read
 		TimerInterruptCycles      = 3,  // read/write
 		DiskCmd                   = 4,  // write
-		DiskFileHandler		      = 5,  // read/write
+		DiskData		          = 5,  // read/write
 	};
 
 	// ---------------------------------------

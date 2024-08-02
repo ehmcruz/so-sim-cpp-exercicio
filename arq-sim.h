@@ -9,6 +9,7 @@
 #include <fstream>
 #include <utility>
 #include <memory>
+#include <unordered_map>
 
 #include <cstdint>
 
@@ -141,42 +142,36 @@ class Disk : public IO_Device
 {
 public:
 	enum class Cmd : uint16_t {
-		SetFnameStart      = 0,
-		SetFnameEnd        = 1,
-		OpenFile           = 2,
-		CloseFile          = 3,
-		ReadFile           = 4,
-		GetFileSize        = 5,
+		SetFname           = 0,
+		OpenFile           = 1,
+		CloseFile          = 2,
+		ReadFile           = 3,
+		GetFileSize        = 4,
 	};
 
 private:
 	enum class State {
 		Idle,
-		WaitingFname,
-		Reading
+		SettingFname,
+		WaitingRead,
+		Reading,
+		Uploading
 	};
 
 	struct FileDescriptor {
-		std::fstream file;
 		std::string fname;
-	};
-
-	struct Job {
-		enum class Type {
-			Read
-		};
-
-		Type type;
-		Descriptor descriptor;
-		uint64_t sector;
-		std::vector<uint8_t> buffer;
+		std::fstream file;
 	};
 
 private:
-	std::vector<std::unique_ptr<FileDescriptor>> file_descriptors;
+	std::unordered_map<uint16_t, std::unique_ptr<FileDescriptor>> file_descriptors;
 	OO_ENCAPSULATE_SCALAR_CONST_INIT_READONLY(uint32_t, sector_size_bytes, Config::disk_sector_size)
 	uint32_t count = 0;
+	uint16_t next_id = 0;
 	State state = State::Idle;
+	std::string fname;
+	uint16_t data_written;
+	std::vector<uint8_t> buffer;
 
 public:
 	Disk (Computer& computer);
@@ -187,8 +182,10 @@ public:
 	void write (const uint16_t port, const uint16_t value) override final;
 
 private:
-	Descriptor open (const std::string_view fname);
-	void close (Descriptor descriptor);
+	void process_cmd (const uint16_t cmd_);
+	void process_data_read ();
+	void process_data_write (const uint16_t value);
+
 	uint32_t size (Descriptor descriptor) const;
 	uint64_t request_read_sector (Descriptor descriptor, std::vector<uint8_t>& buffer);
 	std::unique_ptr<Job> fetch_finished_job ();
