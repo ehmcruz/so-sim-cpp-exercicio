@@ -23,7 +23,5 @@ namespace Config {
 
 	inline constexpr uint32_t page_size = 1 << page_size_bits;
 
-	inline constexpr uint32_t disk_sector_size = page_size;
-
 }
 #endif

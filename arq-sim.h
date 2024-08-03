@@ -43,13 +43,14 @@ enum class InterruptCode : uint16_t
 
 const char* InterruptCode_str (const InterruptCode code);
 
-enum class IO_Ports : uint16_t {
+enum class IO_Port : uint16_t {
 	TerminalSet               = 0,   // write
 	TerminalUpload            = 1,   // write
 	TerminalReadTypedChar     = 2,   // read
 	TimerInterruptCycles      = 10,   // read/write
 	DiskCmd                   = 20,  // write
 	DiskData		          = 21,  // read/write
+	DiskState                 = 22,  // read
 };
 
 // ---------------------------------------
@@ -155,19 +156,21 @@ public:
 		OpenFile           = 1,
 		CloseFile          = 2,
 		ReadFile           = 3,
-		GetFileSize        = 4,
+		WriteFile          = 4,
+		GetFileSize        = 5,
+		SeekFilePos        = 6,
+	};
+
+	enum class State : uint16_t {
+		Idle                    = 0,
+		SettingFname            = 1,
+		WaitingReadSize         = 2,
+		WaitingRead             = 3,
+		ReadingReadSize         = 4,
+		ReadingFile             = 5,
 	};
 
 private:
-	enum class State {
-		Idle,
-		SettingFname,
-		WaitingReadSize,
-		WaitingRead,
-		ReadingReadSize,
-		ReadingSector,
-	};
-
 	struct FileDescriptor {
 		std::string fname;
 		std::fstream file;
@@ -176,7 +179,7 @@ private:
 private:
 	std::unordered_map<uint16_t, std::unique_ptr<FileDescriptor>> file_descriptors;
 	uint32_t count = 0;
-	uint16_t next_id = 0;
+	uint16_t next_id = 1;
 	State state = State::Idle;
 	std::string fname;
 	uint16_t data_written;
@@ -301,7 +304,7 @@ public:
 		return this->computer.get_io_port(port).read(port);
 	}
 
-	inline uint16_t read_io (const Config::IO_Ports port)
+	inline uint16_t read_io (const IO_Port port)
 	{
 		return this->read_io(std::to_underlying(port));
 	}
@@ -311,7 +314,7 @@ public:
 		this->computer.get_io_port(port).write(port, value);
 	}
 
-	inline void write_io (const Config::IO_Ports port, const uint16_t value)
+	inline void write_io (const IO_Port port, const uint16_t value)
 	{
 		this->write_io(std::to_underlying(port), value);
 	}
@@ -400,7 +403,7 @@ public:
 		this->io_ports[port] = device;
 	}
 
-	inline void set_io_port (const Config::IO_Ports port, IO_Device *device)
+	inline void set_io_port (const IO_Port port, IO_Device *device)
 	{
 		this->set_io_port(std::to_underlying(port), device);
 	}
@@ -412,7 +415,7 @@ public:
 		return *this->io_ports[port];
 	}
 
-	inline IO_Device& get_io_port (const Config::IO_Ports port) const
+	inline IO_Device& get_io_port (const IO_Port port) const
 	{
 		return this->get_io_port(std::to_underlying(port));
 	}

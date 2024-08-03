@@ -207,8 +207,9 @@ Terminal::Terminal (Computer& computer)
 	// app video
 	this->videos.emplace_back(2*(total_w/3) + 1, total_w, 1, total_h);
 
-	this->computer.set_io_port(Config::IO_Ports::TerminalSet, this);
-	this->computer.set_io_port(Config::IO_Ports::TerminalUpload, this);
+	this->computer.set_io_port(IO_Port::TerminalSet, this);
+	this->computer.set_io_port(IO_Port::TerminalUpload, this);
+	this->computer.set_io_port(IO_Port::TerminalReadTypedChar, this);
 }
 
 Terminal::~Terminal ()
@@ -234,10 +235,10 @@ void Terminal::run_cycle ()
 
 uint16_t Terminal::read (const uint16_t port)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case TerminalReadTypedChar:
 			this->has_char = false;
@@ -250,10 +251,10 @@ uint16_t Terminal::read (const uint16_t port)
 
 void Terminal::write (const uint16_t port, const uint16_t value)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case TerminalSet:
 			this->current_video = static_cast<Type>(value);
@@ -275,6 +276,9 @@ void Terminal::write (const uint16_t port, const uint16_t value)
 Disk::Disk (Computer& computer)
 	: IO_Device(computer)
 {
+	this->computer.set_io_port(IO_Port::DiskCmd, this);
+	this->computer.set_io_port(IO_Port::DiskData, this);
+	this->computer.set_io_port(IO_Port::DiskState, this);
 }
 
 Disk::~Disk ()
@@ -333,26 +337,33 @@ void Disk::run_cycle ()
 
 uint16_t Disk::read (const uint16_t port)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
+	uint16_t r;
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case DiskData:
-			return this->process_data_read();
+			r = this->process_data_read();
+		break;
+
+		case DiskState:
+			r = static_cast<uint16_t>(this->state);
 		break;
 
 		default:
 			mylib_throw_exception_msg("Disk read invalid port ", port);
 	}
+
+	return r;
 }
 
 void Disk::write (const uint16_t port, const uint16_t value)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case DiskCmd:
 			this->process_cmd(value);
@@ -429,10 +440,10 @@ uint16_t Disk::process_data_read ()
 		case ReadingReadSize:
 			r = this->buffer.size();
 			this->buffer_pos = 0;
-			this->state = ReadingSector;
+			this->state = ReadingFile;
 		break;
 
-		case ReadingSector:
+		case ReadingFile:
 			mylib_assert_exception_msg(this->buffer_pos < this->buffer.size(), "buffer is empty")
 			r = this->buffer[this->buffer_pos++];
 
@@ -455,8 +466,14 @@ void Disk::process_data_write (const uint16_t value)
 			this->data_written = value;
 		break;
 
-		case SettingFname:
-			this->fname += static_cast<char>(value);
+		case SettingFname: {
+			char c = static_cast<char>(value);
+
+			if (c == 0)
+				this->state = State::Idle;
+			else
+				this->fname += c;
+		}
 		break;
 
 		case WaitingReadSize:
