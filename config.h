@@ -17,15 +17,6 @@ namespace Config {
 
 	inline constexpr uint32_t disk_interrupt_cycles = 1024;
 
-	enum class IO_Ports : uint16_t {
-		TerminalSet               = 0,  // read
-		TerminalUpload            = 1,  // write
-		TerminalReadTypedChar     = 2,  // read
-		TimerInterruptCycles      = 3,  // read/write
-		DiskCmd                   = 4,  // write
-		DiskData		          = 5,  // read/write
-	};
-
 	// ---------------------------------------
 
 	// Don't change this

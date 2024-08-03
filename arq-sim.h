@@ -35,13 +35,22 @@ namespace Arch {
 
 enum class InterruptCode : uint16_t
 {
-	Keyboard,
-	Disk,
-	Timer,
-	GPF
+	Keyboard         = 0,
+	Disk             = 1,
+	Timer            = 2,
+	GPF              = 3,
 };
 
 const char* InterruptCode_str (const InterruptCode code);
+
+enum class IO_Ports : uint16_t {
+	TerminalSet               = 0,   // write
+	TerminalUpload            = 1,   // write
+	TerminalReadTypedChar     = 2,   // read
+	TimerInterruptCycles      = 10,   // read/write
+	DiskCmd                   = 20,  // write
+	DiskData		          = 21,  // read/write
+};
 
 // ---------------------------------------
 
@@ -108,12 +117,12 @@ class Terminal : public IO_Device
 {
 public:
 	enum class Type : uint16_t {
-		Arch,
-		Kernel,
-		Command,
-		App,
+		Arch        = 0,
+		Kernel      = 1,
+		Command     = 2,
+		App         = 3,
 
-		Count // must be the last one
+		Count       = 4 // amount of sub-terminals
 	};
 
 private:
@@ -153,6 +162,7 @@ private:
 	enum class State {
 		Idle,
 		SettingFname,
+		WaitingReadSize,
 		WaitingRead,
 		ReadingReadSize,
 		ReadingSector,
@@ -165,7 +175,6 @@ private:
 
 private:
 	std::unordered_map<uint16_t, std::unique_ptr<FileDescriptor>> file_descriptors;
-	OO_ENCAPSULATE_SCALAR_CONST_INIT_READONLY(uint32_t, sector_size_bytes, Config::disk_sector_size)
 	uint32_t count = 0;
 	uint16_t next_id = 0;
 	State state = State::Idle;
@@ -188,10 +197,7 @@ private:
 	uint16_t process_data_read ();
 	void process_data_write (const uint16_t value);
 
-	uint32_t size (Descriptor descriptor) const;
-	uint64_t request_read_sector (Descriptor descriptor, std::vector<uint8_t>& buffer);
-	std::unique_ptr<Job> fetch_finished_job ();
-	void process_job (Job& job);
+	static std::fstream::pos_type get_file_size (std::fstream& file);
 };
 
 // ---------------------------------------
