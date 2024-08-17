@@ -1,5 +1,9 @@
+#include <limits>
+
 #include "disk.h"
 #include "arch-lib.h"
+#include "arch.h"
+#include "cpu.h"
 
 // ---------------------------------------
 
@@ -19,8 +23,8 @@ Disk::~Disk ()
 {
 	for (auto& it: this->file_descriptors) {
 		auto& d = it.second;
-		if (d->file.is_open())
-			d->file.close();
+		if (d.file.is_open())
+			d.file.close();
 	}
 }
 
@@ -126,13 +130,18 @@ void Disk::process_cmd (const uint16_t cmd_)
 		break;
 
 		case OpenFile: {
-			auto desc = std::make_unique<FileDescriptor>();
+			FileDescriptor desc;
 			const uint16_t id = this->next_id++;
 			mylib_assert_exception(id < std::numeric_limits<uint16_t>::max())
-			desc->fname = std::move(this->fname);
-			desc->file.open(fname.data(), std::ios::binary | std::ios_base::in);
-			this->file_descriptors.insert(std::make_pair(id, std::move(desc)));
-			this->current_file_descriptor = desc.get();
+			desc.fname = std::move(this->fname);
+			desc.file.open(fname.data(), std::ios::binary | std::ios_base::in);
+			
+			auto pair = this->file_descriptors.insert(std::make_pair(id, std::move(desc)));
+			
+			if (!pair.second)
+				mylib_throw_exception_msg("file descriptor already exists");
+
+			this->current_file_descriptor = &pair.first->second;
 
 			this->state = State::Idle;
 		};
@@ -141,8 +150,8 @@ void Disk::process_cmd (const uint16_t cmd_)
 		case CloseFile: {
 			auto it = this->file_descriptors.find(this->data_written);
 			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
-			auto& desc = it->second;
-			desc->file.close();
+			FileDescriptor& desc = it->second;
+			desc.file.close();
 			this->file_descriptors.erase(it);
 			this->current_file_descriptor = nullptr;
 		}
@@ -155,7 +164,7 @@ void Disk::process_cmd (const uint16_t cmd_)
 
 			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
 
-			this->current_file_descriptor = it->second.get();
+			this->current_file_descriptor = &it->second;
 		}
 		break;
 

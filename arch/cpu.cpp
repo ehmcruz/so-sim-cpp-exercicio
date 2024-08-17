@@ -1,8 +1,30 @@
 #include "cpu.h"
+#include "terminal.h"
+#include "../os.h"
 
 // ---------------------------------------
 
 namespace Arch {
+
+// ---------------------------------------
+
+static const char* get_reg_name_str (const uint16_t code)
+{
+	static constexpr auto strs = std::to_array<const char*>({
+		"r0",
+		"r1",
+		"r2",
+		"r3",
+		"r4",
+		"r5",
+		"r6",
+		"r7"
+		});
+
+	mylib_assert_exception_msg(code < strs.size(), "invalid register code ", code)
+
+	return strs[code];
+}
 
 // ---------------------------------------
 
@@ -39,7 +61,7 @@ void Cpu::run_cycle ()
 		return;
 	}
 
-	terminal_println(Arch, "\tPC = " << this->pc << " instr 0x" << std::hex << instruction.underlying() << std::dec << " binary " << instruction.underlying())
+	dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.underlying(), std::dec, " binary ", instruction.underlying());
 	
 	this->pc++;
 
@@ -60,7 +82,7 @@ void Cpu::run_cycle ()
 
 void Cpu::turn_off ()
 {
-	alive = false;
+	this->computer.turn_off();
 }
 
 bool Cpu::interrupt (const InterruptCode interrupt_code)
@@ -101,52 +123,48 @@ void Cpu::execute_r (const Mylib::BitSet<16> instruction)
 		using enum OpcodeR;
 
 		case Add:
-			terminal_println(Arch, "\tadd " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tadd ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = this->gprs[op1] + this->gprs[op2];
 		break;
 
 		case Sub:
-			terminal_println(Arch, "\tsub " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tsub ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = this->gprs[op1] - this->gprs[op2];
 		break;
 
 		case Mul:
-			terminal_println(Arch, "\tmul " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tmul ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = this->gprs[op1] * this->gprs[op2];
 		break;
 
 		case Div:
-			terminal_println(Arch, "\tdiv " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tdiv ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = this->gprs[op1] / this->gprs[op2];
 		break;
 
 		case Cmp_equal:
-			terminal_println(Arch, "\tcmp_equal " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tcmp_equal ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = (this->gprs[op1] == this->gprs[op2]);
 		break;
 
 		case Cmp_neq:
-			terminal_println(Arch, "\tcmp_neq " << get_reg_name_str(dest) << ", " << get_reg_name_str(op1) << ", " << get_reg_name_str(op2))
+			dprintln("\tcmp_neq ", get_reg_name_str(dest), ", ", get_reg_name_str(op1), ", ", get_reg_name_str(op2));
 			this->gprs[dest] = (this->gprs[op1] != this->gprs[op2]);
 		break;
 
 		case Load:
-			terminal_println(Arch, "\tload " << get_reg_name_str(dest) << ", [" << get_reg_name_str(op1) << "]")
+			dprintln("\tload ", get_reg_name_str(dest), ", [", get_reg_name_str(op1), "]");
 			this->gprs[dest] = this->vmem_read( this->gprs[op1] );
 		break;
 
 		case Store:
-			terminal_println(Arch, "\tstore [" << get_reg_name_str(op1) << "], " << get_reg_name_str(op2))
+			dprintln("\tstore [", get_reg_name_str(op1), "], ", get_reg_name_str(op2));
 			this->vmem_write(this->gprs[op1], this->gprs[op2]);
 		break;
 
 		case Syscall:
-			terminal_println(Arch, "\tsyscall");
-			#ifdef CPU_DEBUG_MODE
-				fake_syscall_handler();
-			#else
-				OS::syscall();
-			#endif
+			dprintln("\tsyscall");
+			OS::syscall();
 		break;
 
 		default:
@@ -170,18 +188,18 @@ void Cpu::execute_i (const Mylib::BitSet<16> instruction)
 		using enum OpcodeI;
 
 		case Jump:
-			terminal_println(Arch, "\tjump " << imed)
+			dprintln("\tjump ", imed);
 			this->pc = imed;
 		break;
 
 		case Jump_cond:
-			terminal_println(Arch, "\tjump_cond " << get_reg_name_str(reg) << ", " << imed)
+			dprintln("\tjump_cond ", get_reg_name_str(reg), ", ", imed);
 			if (this->gprs[reg] == 1)
 				this->pc = imed;
 		break;
 
 		case Mov:
-			terminal_println(Arch, "\tmov " << get_reg_name_str(reg) << ", " << imed)
+			dprintln("\tmov ", get_reg_name_str(reg), ", ", imed);
 			this->gprs[reg] = imed;
 		break;
 
@@ -192,10 +210,10 @@ void Cpu::execute_i (const Mylib::BitSet<16> instruction)
 
 void Cpu::dump () const
 {
-	terminal_print(Arch, "gprs:")
+	dprint("gprs:");
 	for (uint32_t i = 0; i < this->gprs.size(); i++)
-		terminal_print(Arch, " " << this->gprs[i])
-	terminal_println(Arch, "")
+		dprint(" ", this->gprs[i]);
+	dprintln();
 }
 
 // ---------------------------------------

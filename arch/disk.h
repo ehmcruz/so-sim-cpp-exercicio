@@ -1,10 +1,14 @@
 #ifndef __ARQSIM_HEADER_ARCH_DISK_H__
 #define __ARQSIM_HEADER_ARCH_DISK_H__
 
+#include <fstream>
+#include <unordered_map>
+#include <vector>
+
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "config.h"
+#include "../config.h"
 #include "arch-lib.h"
 
 namespace Arch {

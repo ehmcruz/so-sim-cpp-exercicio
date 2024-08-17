@@ -17,6 +17,7 @@
 #include <my-lib/matrix.h>
 
 #include "arch-lib.h"
+#include "arch.h"
 #include "../config.h"
 
 namespace Arch {
@@ -80,6 +81,11 @@ public:
 	{
 		this->videos[ std::to_underlying(video) ].dump();
 	}
+
+	void print_str (const Type video, const std::string_view str)
+	{
+		this->videos[ std::to_underlying(video) ].print(str);
+	}
 };
 
 // ---------------------------------------
@@ -88,7 +94,7 @@ template <typename... Types>
 void dprint (Types&&... vars)
 {
 	const std::string str = Mylib::build_str_from_stream(vars...);
-	terminal_print_str(video, str);
+	Computer::get().get_terminal().print_str(Terminal::Type::Arch, str);
 }
 
 template <typename... Types>

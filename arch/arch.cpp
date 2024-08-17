@@ -1,4 +1,9 @@
 #include "arch.h"
+#include "terminal.h"
+#include "disk.h"
+#include "timer.h"
+#include "memory.h"
+#include "cpu.h"
 
 // ---------------------------------------
 
@@ -11,17 +16,23 @@ Computer::Computer ()
 	for (auto& port: this->io_ports)
 		port = nullptr;
 	
-	this->terminal = std::make_unique<Terminal>();
-	this->disk = std::make_unique<Disk>();
-	this->timer = std::make_unique<Timer>();
-	this->memory = std::make_unique<Memory>();
-	this->cpu = std::make_unique<Cpu>();
+	this->terminal = new Terminal(*this);
+	this->disk = new Disk(*this);
+	this->timer = new Timer(*this);
+	this->memory = new Memory(*this);
+	this->cpu = new Cpu(*this);
 
-	this->devices.push_back(this->terminal.get());
-	this->devices.push_back(this->disk.get());
-	this->devices.push_back(this->timer.get());
-	this->devices.push_back(this->memory.get());
-	this->devices.push_back(this->cpu.get());
+	this->devices.push_back(this->terminal);
+	this->devices.push_back(this->disk);
+	this->devices.push_back(this->timer);
+	this->devices.push_back(this->memory);
+	this->devices.push_back(this->cpu);
+}
+
+Computer::~Computer ()
+{
+	for (auto *device: this->devices)
+		delete device;
 }
 
 void Computer::run ()

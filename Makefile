@@ -25,7 +25,7 @@ RM = rm
 
 ########################################################
 
-SRC = $(wildcard *.cpp)
+SRC = $(wildcard *.cpp) $(wildcard arch/*.cpp)
 
 headerfiles = $(wildcard *.h)
 

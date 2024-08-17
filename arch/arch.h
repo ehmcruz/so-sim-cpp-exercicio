@@ -2,7 +2,6 @@
 #define __ARQSIM_HEADER_ARCH_H__
 
 #include <array>
-#include <memory>
 #include <list>
 
 #include <cstdint>
@@ -10,7 +9,7 @@
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "config.h"
+#include "../config.h"
 #include "arch-lib.h"
 
 namespace Arch {
@@ -28,11 +27,11 @@ class Computer
 private:
 	std::list<Device*> devices;
 	std::array<IO_Device*, 1 << 16> io_ports;
-	std::unique_ptr<Terminal> terminal;
-	std::unique_ptr<Disk> disk;
-	std::unique_ptr<Timer> timer;
-	std::unique_ptr<Memory> memory;
-	std::unique_ptr<Cpu> cpu;
+	Terminal *terminal;
+	Disk *disk;
+	Timer *timer;
+	Memory *memory;
+	Cpu *cpu;
 
 	bool alive = true;
 	uint64_t cycle = 0;
@@ -43,23 +42,25 @@ private:
 
 private:
 	Computer ();
+	~Computer ();
 
 public:
 	static void init ()
 	{
-		if (computer == nullptr)
-			computer = new Computer;
+		mylib_assert_exception(computer == nullptr)
+		computer = new Computer;
 	}
 
 	static Computer& get ()
 	{
+		mylib_assert_exception(computer != nullptr)
 		return *computer;
 	}
 
 	static void destroy ()
 	{
-		if (computer != nullptr)
-			delete computer;
+		mylib_assert_exception(computer != nullptr)
+		delete computer;
 		computer = nullptr;
 	}
 
@@ -111,6 +112,11 @@ public:
 	inline IO_Device& get_io_port (const IO_Port port) const
 	{
 		return this->get_io_port(std::to_underlying(port));
+	}
+
+	inline void turn_off ()
+	{
+		this->alive = false;
 	}
 };
 

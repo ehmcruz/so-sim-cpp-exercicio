@@ -19,9 +19,9 @@ namespace OS {
 
 void boot (Arch::Cpu *cpu)
 {
-	terminal_println(Arch::Terminal::Type::Command, "Type commands here");
-	terminal_println(Arch::Terminal::Type::App, "Apps output here");
-	terminal_println(Arch::Terminal::Type::Kernel, "Kernel output here");
+	terminal_println(cpu, Arch::Terminal::Type::Command, "Type commands here");
+	terminal_println(cpu, Arch::Terminal::Type::App, "Apps output here");
+	terminal_println(cpu, Arch::Terminal::Type::Kernel, "Kernel output here");
 }
 
 // ---------------------------------------

@@ -6,7 +6,7 @@
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "config.h"
+#include "../config.h"
 #include "arch-lib.h"
 
 namespace Arch {

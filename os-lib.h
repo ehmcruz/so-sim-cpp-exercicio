@@ -40,16 +40,16 @@ void terminal_print_str (Arch::Cpu *cpu, const Arch::Terminal::Type video, const
 }
 
 template <typename... Types>
-void terminal_print (const Arch::Terminal::Type video, Types&&... vars)
+void terminal_print (Arch::Cpu *cpu, const Arch::Terminal::Type video, Types&&... vars)
 {
 	const std::string str = Mylib::build_str_from_stream(vars...);
-	terminal_print_str(video, str);
+	terminal_print_str(cpu, video, str);
 }
 
 template <typename... Types>
-void terminal_println (const Arch::Terminal::Type video, Types&&... vars)
+void terminal_println (Arch::Cpu *cpu, const Arch::Terminal::Type video, Types&&... vars)
 {
-	terminal_print(video, vars..., '\n');
+	terminal_print(cpu, video, vars..., '\n');
 }
 
 // ---------------------------------------

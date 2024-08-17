@@ -4,7 +4,6 @@
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "arq-sim.h"
 #include "lib.h"
 
 namespace Lib {

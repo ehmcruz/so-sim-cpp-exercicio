@@ -1,4 +1,7 @@
 #include "timer.h"
+#include "arch.h"
+#include "cpu.h"
+
 
 // ---------------------------------------
 
@@ -23,10 +26,10 @@ void Timer::run_cycle ()
 
 uint16_t Timer::read (const uint16_t port)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case TimerInterruptCycles:
 			return this->timer_interrupt_cycles;
@@ -38,10 +41,10 @@ uint16_t Timer::read (const uint16_t port)
 
 void Timer::write (const uint16_t port, const uint16_t value)
 {
-	const Config::IO_Ports port_enum = static_cast<Config::IO_Ports>(port);
+	const IO_Port port_enum = static_cast<IO_Port>(port);
 
 	switch (port_enum) {
-		using enum Config::IO_Ports;
+		using enum IO_Port;
 
 		case TimerInterruptCycles:
 			this->timer_interrupt_cycles = value;

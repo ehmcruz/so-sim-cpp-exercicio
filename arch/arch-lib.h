@@ -44,6 +44,8 @@ public:
 	{
 	}
 
+	virtual ~Device () { }
+
 	virtual void run_cycle () = 0;
 };
 
@@ -56,6 +58,8 @@ public:
 		: Device(computer)
 	{
 	}
+
+	virtual ~IO_Device () { }
 
 	virtual uint16_t read (const uint16_t port) = 0;
 	virtual void write (const uint16_t port, const uint16_t value) = 0;

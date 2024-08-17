@@ -7,7 +7,7 @@
 #include <my-lib/macros.h>
 #include <my-lib/bit.h>
 
-#include "config.h"
+#include "../config.h"
 #include "arch-lib.h"
 #include "memory.h"
 #include "arch.h"

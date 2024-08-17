@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "terminal.h"
 
 // ---------------------------------------
 
@@ -24,10 +25,10 @@ void Memory::run_cycle ()
 
 void Memory::dump (const uint16_t init, const uint16_t end) const
 {
-	terminal_println(Arch, "memory dump from paddr " << init << " to " << end)
+	dprintln("memory dump from paddr ", init, " to ", end);
 	for (uint16_t i = init; i < end; i++)
-		terminal_print(Arch, this->data[i] << " ")
-	terminal_println(Arch, "")
+		dprint(this->data[i], " ");
+	dprintln();
 }
 
 // ---------------------------------------
