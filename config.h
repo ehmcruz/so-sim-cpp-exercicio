@@ -3,8 +3,6 @@
 
 #include <cstdint>
 
-//#define CPU_DEBUG_MODE
-
 namespace Config {
 
 	inline constexpr uint32_t nregs = 8;

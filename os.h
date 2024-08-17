@@ -7,7 +7,8 @@
 #include <my-lib/macros.h>
 
 #include "config.h"
-#include "arq-sim.h"
+#include "arch/arch.h"
+#include "arch/arch-lib.h"
 
 namespace OS {
 
