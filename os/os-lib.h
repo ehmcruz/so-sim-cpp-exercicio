@@ -6,10 +6,8 @@
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "config.h"
-#include "arch/arch-lib.h"
-#include "arch/arch.h"
-#include "arch/terminal.h"
+#include "../config.h"
+#include "../arch/arch.h"
 
 namespace OS {
 
@@ -35,8 +33,12 @@ inline bool terminal_is_return (const char c)
 	return (c == '\n');
 }
 
-void terminal_print_str (Arch::Cpu *cpu, const Arch::Terminal::Type video, const std::string_view str)
+inline void terminal_print_str (Arch::Cpu *cpu, const Arch::Terminal::Type video, const std::string_view str)
 {
+	cpu->write_io(Arch::IO_Port::TerminalSet, static_cast<uint16_t>(video));
+
+	for (const char c : str)
+		cpu->write_io(Arch::IO_Port::TerminalUpload, static_cast<uint16_t>(c));
 }
 
 template <typename... Types>

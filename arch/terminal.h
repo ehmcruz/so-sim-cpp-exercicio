@@ -17,7 +17,7 @@
 #include <my-lib/matrix.h>
 
 #include "arch-lib.h"
-#include "arch.h"
+#include "computer.h"
 #include "../config.h"
 
 namespace Arch {

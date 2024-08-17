@@ -1,6 +1,6 @@
 #include "cpu.h"
 #include "terminal.h"
-#include "../os.h"
+#include "../os/os.h"
 
 // ---------------------------------------
 

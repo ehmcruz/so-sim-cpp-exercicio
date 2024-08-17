@@ -6,9 +6,8 @@
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
 
-#include "config.h"
-#include "arch/arch.h"
-#include "arch/arch-lib.h"
+#include "../config.h"
+#include "../arch/arch.h"
 
 namespace OS {
 

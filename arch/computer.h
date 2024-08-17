@@ -1,5 +1,5 @@
-#ifndef __ARQSIM_HEADER_ARCH_H__
-#define __ARQSIM_HEADER_ARCH_H__
+#ifndef __ARQSIM_HEADER_ARCH_COMPUTER_H__
+#define __ARQSIM_HEADER_ARCH_COMPUTER_H__
 
 #include <array>
 #include <list>

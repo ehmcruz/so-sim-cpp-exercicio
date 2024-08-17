@@ -1,5 +1,5 @@
 #include "terminal.h"
-#include "arch.h"
+#include "computer.h"
 #include "cpu.h"
  
 // ---------------------------------------

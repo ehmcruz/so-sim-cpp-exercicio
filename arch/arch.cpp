@@ -1,4 +1,4 @@
-#include "arch.h"
+#include "computer.h"
 #include "terminal.h"
 #include "disk.h"
 #include "timer.h"

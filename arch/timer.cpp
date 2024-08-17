@@ -1,5 +1,5 @@
 #include "timer.h"
-#include "arch.h"
+#include "computer.h"
 #include "cpu.h"
 
 

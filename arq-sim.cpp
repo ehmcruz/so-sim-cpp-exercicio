@@ -5,9 +5,9 @@
 
 #include "config.h"
 #include "lib.h"
-#include "arch/arch.h"
+#include "arch/computer.h"
 #include "arch/terminal.h"
-#include "os.h"
+#include "os/os.h"
 
 // ---------------------------------------
 

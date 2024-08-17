@@ -25,9 +25,9 @@ RM = rm
 
 ########################################################
 
-SRC = $(wildcard *.cpp) $(wildcard arch/*.cpp)
+SRC = $(wildcard *.cpp) $(wildcard arch/*.cpp) $(wildcard os/*.cpp)
 
-headerfiles = $(wildcard *.h)
+headerfiles = $(wildcard *.h) $(wildcard arch/*.h) $(wildcard os/*.h)
 
 OBJS = ${SRC:.cpp=.o}
 

@@ -10,7 +10,7 @@
 #include "../config.h"
 #include "arch-lib.h"
 #include "memory.h"
-#include "arch.h"
+#include "computer.h"
 
 namespace Arch {
 

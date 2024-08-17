@@ -5,10 +5,9 @@
 #include <cstdint>
 #include <cstdlib>
 
-#include "config.h"
-#include "lib.h"
-#include "arch/arch.h"
-#include "arch/cpu.h"
+#include "../config.h"
+#include "../lib.h"
+#include "../arch/arch.h"
 #include "os.h"
 #include "os-lib.h"
 
