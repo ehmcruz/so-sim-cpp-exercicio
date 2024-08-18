@@ -53,28 +53,37 @@ void Cpu::run_cycle ()
 		return;
 	}
 
-	const Mylib::BitSet<16> instruction = this->vmem_read(this->pc);
-
-	if (this->has_interrupt) {
-		this->has_interrupt = false;
-		OS::interrupt(this->interrupt_code);
-		return;
-	}
-
-	dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.underlying(), std::dec, " binary ", instruction.underlying());
+	const auto backup_pc = this->pc;
 	
-	this->pc++;
+	try {
+		const Mylib::BitSet<16> instruction = this->vmem_read(this->pc);
 
-	const InstrType type = static_cast<InstrType>( instruction[15] );
+		dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.underlying(), std::dec, " binary ", instruction.underlying());
 
-	if (type == InstrType::R)
-		this->execute_r(instruction);
-	else
-		this->execute_i(instruction);
+		this->pc++;
 
-	if (this->has_interrupt) {
-		this->has_interrupt = false;
-		OS::interrupt(this->interrupt_code);
+		const InstrType type = static_cast<InstrType>( instruction[15] );
+
+		if (type == InstrType::R)
+			this->execute_r(instruction);
+		else
+			this->execute_i(instruction);
+	}
+	catch (const CpuException& e) {
+		this->pc = backup_pc;
+		this->cpu_exception = e;
+
+		switch (e.type) {
+			using enum CpuException::Type;
+
+			case VmemGPF:
+				OS::interrupt(InterruptCode::GPF);
+			break;
+
+			case VmemPageFault:
+				mylib_throw_exception_msg("Page fault not implemented");
+			break;
+		}
 	}
 
 	this->dump();

@@ -16,7 +16,7 @@
 #include <my-lib/macros.h>
 #include <my-lib/matrix.h>
 
-#include "arch-lib.h"
+#include "device.h"
 #include "computer.h"
 #include "../config.h"
 

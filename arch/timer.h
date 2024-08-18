@@ -7,7 +7,7 @@
 #include <my-lib/macros.h>
 
 #include "../config.h"
-#include "arch-lib.h"
+#include "device.h"
 
 namespace Arch {
 

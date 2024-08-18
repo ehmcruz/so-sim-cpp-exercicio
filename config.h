@@ -5,9 +5,9 @@
 
 namespace Config {
 
-	inline constexpr uint32_t nregs = 8;
+	inline constexpr uint16_t phys_mem_size_bits = 15;
 
-	inline constexpr uint16_t memsize_words = 1 << 15;
+	inline constexpr uint16_t phys_mem_size_words = 1 << phys_mem_size_bits;
 
 	inline constexpr uint16_t timer_default_interrupt_cycles = 1024;
 
@@ -19,7 +19,13 @@ namespace Config {
 
 	// Don't change this
 
-	inline constexpr uint32_t page_size = 1 << page_size_bits;
+	inline constexpr uint32_t nregs = 8;
+
+	inline constexpr uint16_t virtual_mem_size_bits = 16;
+
+	inline constexpr uint16_t page_size = 1 << page_size_bits;
+
+	inline constexpr uint16_t ptes_per_table = 1 << (virtual_mem_size_bits - page_size_bits);
 
 }
 #endif

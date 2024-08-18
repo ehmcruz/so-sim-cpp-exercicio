@@ -1,7 +1,6 @@
 #include <limits>
 
 #include "disk.h"
-#include "arch-lib.h"
 #include "computer.h"
 #include "cpu.h"
 

@@ -50,6 +50,10 @@ void VideoOutput::print (const std::string_view str)
 		}
 
 		if (str[i] == '\n') {
+			// fill the rest of the line with spaces
+			for (uint32_t i = this->x; i < ncols; i++)
+				this->buffer(this->y, i) = ' ';
+			
 			this->x = 0;
 			this->y++;
 
@@ -154,8 +158,8 @@ void Terminal::run_cycle ()
 
 		if (typed == KEY_BACKSPACE || typed == 127) // || '\b'
 			this->typed_char = 8;
-
-		this->typed_char = typed;
+		else
+			this->typed_char = typed;
 	}
 
 	if (this->has_char)

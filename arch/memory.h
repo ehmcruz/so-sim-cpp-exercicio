@@ -7,7 +7,7 @@
 #include <my-lib/macros.h>
 
 #include "../config.h"
-#include "arch-lib.h"
+#include "device.h"
 
 namespace Arch {
 
@@ -16,7 +16,7 @@ namespace Arch {
 class Memory : public Device
 {
 private:
-	std::array<uint16_t, Config::memsize_words> data;
+	std::array<uint16_t, Config::phys_mem_size_words> data;
 
 public:
 	Memory (Computer& computer);
@@ -41,7 +41,7 @@ public:
 		return this->data[paddr];
 	}
 
-	void dump (const uint16_t init = 0, const uint16_t end = Config::memsize_words-1) const;
+	void dump (const uint16_t init = 0, const uint16_t end = Config::phys_mem_size_words-1) const;
 };
 
 // ---------------------------------------

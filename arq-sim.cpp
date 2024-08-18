@@ -1,7 +1,12 @@
+#include <iostream>
+#include <exception>
+
 #include <cstdint>
 #include <cstdlib>
 
 #include <signal.h>
+
+#include <my-lib/std.h>
 
 #include "config.h"
 #include "lib.h"
@@ -13,8 +18,7 @@
 
 static void interrupt_handler (int dummy)
 {
-	endwin();
-	std::exit(1);
+	mylib_throw_exception_msg("received interrupt signal");
 }
 
 int main (int argc, char **argv)
@@ -26,17 +30,29 @@ int main (int argc, char **argv)
 	timeout(0); // non-blocking input
 	noecho(); // don't print input
 
-	Arch::Computer::init();
-	OS::boot(&Arch::Computer::get().get_cpu());
-	Arch::Computer::get().run();
+	try {
+		Arch::Computer::init();
+		OS::boot(&Arch::Computer::get().get_cpu());
+		Arch::Computer::get().run();
 
-	endwin();
+		endwin();
 
-	// print kernel msgs
-	Arch::Computer::get().get_terminal().dump(Arch::Terminal::Type::Kernel);
-	std::cout << std::endl;
+		// print kernel msgs
+		Arch::Computer::get().get_terminal().dump(Arch::Terminal::Type::Kernel);
+		std::cout << std::endl;
 
-	Arch::Computer::destroy();
+		Arch::Computer::destroy();
+	}
+	catch (const std::exception& e) {
+		endwin();
+		std::cout << "Exception happenned!" << std::endl << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+	catch (...) {
+		endwin();
+		std::cout << "Unknown exception happenned!" << std::endl;
+		return EXIT_FAILURE;
+	}
 
-	return 0;
+	return EXIT_SUCCESS;
 }

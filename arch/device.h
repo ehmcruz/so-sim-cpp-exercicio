@@ -1,5 +1,5 @@
-#ifndef __ARQSIM_HEADER_ARCH_LIB_H__
-#define __ARQSIM_HEADER_ARCH_LIB_H__
+#ifndef __ARQSIM_HEADER_ARCH_DEVICE_H__
+#define __ARQSIM_HEADER_ARCH_DEVICE_H__
 
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
@@ -15,6 +15,7 @@ enum class InterruptCode : uint16_t {
 	Disk             = 1,
 	Timer            = 2,
 	GPF              = 3,
+	PageFault        = 4,
 };
 
 const char* InterruptCode_str (const InterruptCode code);
@@ -44,8 +45,7 @@ public:
 	{
 	}
 
-	virtual ~Device () { }
-
+	virtual ~Device ();
 	virtual void run_cycle () = 0;
 };
 
@@ -59,8 +59,7 @@ public:
 	{
 	}
 
-	virtual ~IO_Device () { }
-
+	virtual ~IO_Device ();
 	virtual uint16_t read (const uint16_t port) = 0;
 	virtual void write (const uint16_t port, const uint16_t value) = 0;
 };

@@ -8,7 +8,7 @@
 #include <my-lib/bit.h>
 
 #include "../config.h"
-#include "arch-lib.h"
+#include "device.h"
 #include "memory.h"
 #include "computer.h"
 
@@ -18,16 +18,56 @@ namespace Arch {
 
 class Cpu : public Device
 {
+public:
+	enum VmemMode : uint16_t {
+		Disabled       = 0,
+		BaseLimit      = 1,
+		Paging         = 2
+	};
+
+	enum class MemAccessType : uint16_t {
+		Execute        = 0,
+		Read           = 1,
+		Write          = 2,
+	};
+
+	struct CpuException {
+		enum class Type : uint16_t {
+			VmemGPF           = 0,
+			VmemPageFault     = 1
+		};
+		Type type;
+		uint16_t vaddr;
+	};
+
+	struct PageTableEntry {
+		enum class Flags : uint16_t {
+			Readable   = 0,
+			Writable   = 1,
+			Executable = 2,
+			Dirty      = 3,
+			Accessed   = 4,
+			Present    = 5
+		};
+		uint16_t paddr;
+		Mylib::BitSet<16> flags;
+	};
+
+	using PageTable = std::array<PageTableEntry, Config::ptes_per_table>;
+
 private:
 	std::array<uint16_t, Config::nregs> gprs;
 	InterruptCode interrupt_code;
 	bool has_interrupt = false;
 
 	OO_ENCAPSULATE_SCALAR(uint16_t, pc)
+	OO_ENCAPSULATE_SCALAR_INIT(VmemMode, vmem_mode, VmemMode::Disabled)
 	OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_init, 0)
-	OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_end, Config::memsize_words-1)
+	OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_end, Config::phys_mem_size_words-1)
+	OO_ENCAPSULATE_PTR_INIT(PageTable*, page_table, nullptr)
+	OO_ENCAPSULATE_OBJ_READONLY(CpuException, cpu_exception)
 
-	OO_ENCAPSULATE_SCALAR_INIT_READONLY(uint16_t, pmem_size_words, Config::memsize_words)
+	OO_ENCAPSULATE_SCALAR_INIT_READONLY(uint16_t, pmem_size_words, Config::phys_mem_size_words)
 
 public:
 	Cpu (Computer& computer);
@@ -86,27 +126,43 @@ private:
 	void execute_r (const Mylib::BitSet<16> instruction);
 	void execute_i (const Mylib::BitSet<16> instruction);
 
-	inline uint16_t vmem_read (const uint16_t vaddr)
+	inline uint16_t vmem_to_phys (const uint16_t vaddr)
 	{
-		const uint16_t paddr = vaddr + this->vmem_paddr_init;
+		uint16_t paddr;
 
-		if (paddr > this->vmem_paddr_end) {
-			this->force_interrupt(InterruptCode::GPF);
-			return 0;
+		switch (this->vmem_mode) {
+			case VmemMode::Disabled:
+				paddr = vaddr;
+				break;
+
+			case VmemMode::BaseLimit:
+				paddr = vaddr + this->vmem_paddr_init;
+
+				if (paddr > this->vmem_paddr_end) {
+					throw CpuException {
+						.type = CpuException::Type::VmemGPF,
+						.vaddr = vaddr
+						};
+				}
+				break;
+
+			case VmemMode::Paging:
+				mylib_throw_exception_msg("Paging not implemented");
+				break;
 		}
 
+		return paddr;
+	}
+
+	inline uint16_t vmem_read (const uint16_t vaddr)
+	{
+		const uint16_t paddr = this->vmem_to_phys(vaddr);
 		return this->pmem_read(paddr);
 	}
 
 	inline void vmem_write (const uint16_t vaddr, const uint16_t value)
 	{
-		const uint16_t paddr = vaddr + this->vmem_paddr_init;
-
-		if (paddr > this->vmem_paddr_end) {
-			this->force_interrupt(InterruptCode::GPF);
-			return;
-		}
-
+		const uint16_t paddr = this->vmem_to_phys(vaddr);
 		this->pmem_write(paddr, value);
 	}
 };
