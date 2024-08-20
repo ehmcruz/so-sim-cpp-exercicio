@@ -37,20 +37,21 @@ public:
 			VmemGPFnotReadable        = 1,
 			VmemGPFnotWritable        = 2,
 			VmemGPFnotExecutable      = 3,
+			InvalidInstruction        = 4,
 		};
 		Type type;
 		uint16_t vaddr;
 	};
 
 	enum class PteFieldPos : uint16_t {
-		PhyAddr    = 0,
-		Present    = 12,
-		Readable   = 13,
-		Writable   = 14,
-		Executable = 15,
-		Dirty      = 16,
-		Accessed   = 17,
-		Foo        = 18,
+		PhyFrameID   = 0,
+		Present      = 12,
+		Readable     = 13,
+		Writable     = 14,
+		Executable   = 15,
+		Dirty        = 16,
+		Accessed     = 17,
+		Foo          = 18,
 	};
 
 	enum class PteFieldSize : uint16_t {
@@ -73,6 +74,7 @@ private:
 	std::array<uint16_t, Config::nregs> gprs;
 	InterruptCode interrupt_code;
 	bool has_interrupt = false;
+	uint16_t backup_pc;
 
 	OO_ENCAPSULATE_SCALAR(uint16_t, pc)
 	OO_ENCAPSULATE_SCALAR_INIT(VmemMode, vmem_mode, VmemMode::Disabled)
@@ -140,36 +142,7 @@ private:
 	void execute_r (const Instruction instruction);
 	void execute_i (const Instruction instruction);
 
-	inline uint16_t vmem_to_phys (const uint16_t vaddr, const MemAccessType access_type)
-	{
-		uint16_t paddr;
-
-		switch (this->vmem_mode) {
-			case VmemMode::Disabled:
-				paddr = vaddr;
-				break;
-
-			case VmemMode::BaseLimit:
-				paddr = vaddr + this->vmem_paddr_init;
-
-				if (paddr > this->vmem_paddr_init || paddr > this->vmem_paddr_end) {
-					throw CpuException {
-						.type = CpuException::Type::VmemPageFault,
-						.vaddr = vaddr
-						};
-				}
-				break;
-
-			case VmemMode::Paging:
-				PageTableEntry& pte = (*this->page_table)[vaddr >> Config::page_size_bits];
-
-				
-
-				break;
-		}
-
-		return paddr;
-	}
+	uint16_t vmem_to_phys (const uint16_t vaddr, const MemAccessType access_type);
 
 	inline uint16_t vmem_read_instruction (const uint16_t vaddr)
 	{

@@ -53,7 +53,7 @@ void Cpu::run_cycle ()
 		return;
 	}
 
-	const auto backup_pc = this->pc;
+	this->backup_pc = this->pc;
 	
 	try {
 		const Instruction instruction = this->vmem_read_instruction(this->pc);
@@ -70,7 +70,7 @@ void Cpu::run_cycle ()
 			this->execute_i(instruction);
 	}
 	catch (const CpuException& e) {
-		this->pc = backup_pc;
+		this->pc = this->backup_pc;
 		this->cpu_exception = e;
 
 		OS::interrupt(InterruptCode::CpuException);
@@ -167,7 +167,10 @@ void Cpu::execute_r (const Instruction instruction)
 		break;
 
 		default:
-			mylib_assert_exception_diecode_msg(false, endwin();, "Unknown opcode ", static_cast<uint16_t>(opcode));
+			throw CpuException {
+				.type = CpuException::Type::InvalidInstruction,
+				.vaddr = this->backup_pc
+				};
 	}
 }
 
@@ -203,8 +206,87 @@ void Cpu::execute_i (const Instruction instruction)
 		break;
 
 		default:
-			mylib_assert_exception_diecode_msg(false, endwin();, "Unknown opcode ", static_cast<uint16_t>(opcode));
+			throw CpuException {
+				.type = CpuException::Type::InvalidInstruction,
+				.vaddr = this->backup_pc
+				};
 	}
+}
+
+uint16_t Cpu::vmem_to_phys (const uint16_t vaddr, const MemAccessType access_type)
+{
+	uint16_t paddr;
+
+	switch (this->vmem_mode) {
+		case VmemMode::Disabled:
+			paddr = vaddr;
+		break;
+
+		case VmemMode::BaseLimit:
+			paddr = vaddr + this->vmem_paddr_init;
+
+			if (paddr > this->vmem_paddr_end) {
+				throw CpuException {
+					.type = CpuException::Type::VmemPageFault,
+					.vaddr = vaddr
+					};
+			}
+		break;
+
+		case VmemMode::Paging: {
+			mylib_assert_exception(this->page_table != nullptr)
+
+			PageTableEntry& pte_writeable = (*this->page_table)[vaddr >> Config::page_size_bits];
+			const PageTableEntry& pte = pte_writeable;
+
+			// first, do some protection checks
+
+			if (pte[PteFieldPos::Present] == 0) {
+				throw CpuException {
+					.type = CpuException::Type::VmemPageFault,
+					.vaddr = vaddr
+					};
+			}
+
+			if (access_type == MemAccessType::Read && pte[PteFieldPos::Readable] == 0) {
+				throw CpuException {
+					.type = CpuException::Type::VmemGPFnotReadable,
+					.vaddr = vaddr
+					};
+			}
+
+			if (access_type == MemAccessType::Write && pte[PteFieldPos::Writable] == 0) {
+				throw CpuException {
+					.type = CpuException::Type::VmemGPFnotWritable,
+					.vaddr = vaddr
+					};
+			}
+
+			if (access_type == MemAccessType::Execute && pte[PteFieldPos::Executable] == 0) {
+				throw CpuException {
+					.type = CpuException::Type::VmemGPFnotExecutable,
+					.vaddr = vaddr
+					};
+			}
+
+			// everything ok, perform the address translation
+
+			pte_writeable[PteFieldPos::Accessed] = 1;
+
+			if (access_type == MemAccessType::Write)
+				pte_writeable[PteFieldPos::Dirty] = 1;
+
+			paddr = Mylib::set_bits(
+				vaddr,
+				PteFieldPos::PhyFrameID,
+				PteFieldSize::PhyFrameID,
+				pte(PteFieldPos::PhyFrameID, PteFieldSize::PhyFrameID)
+				);
+		}
+		break;
+	}
+
+	return paddr;
 }
 
 void Cpu::dump () const
