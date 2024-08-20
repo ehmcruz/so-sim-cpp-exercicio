@@ -56,7 +56,7 @@ void Cpu::run_cycle ()
 	const auto backup_pc = this->pc;
 	
 	try {
-		const Mylib::BitSet<16> instruction = this->vmem_read(this->pc);
+		const Instruction instruction = this->vmem_read_instruction(this->pc);
 
 		dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.underlying(), std::dec, " binary ", instruction.underlying());
 
@@ -73,17 +73,7 @@ void Cpu::run_cycle ()
 		this->pc = backup_pc;
 		this->cpu_exception = e;
 
-		switch (e.type) {
-			using enum CpuException::Type;
-
-			case VmemGPF:
-				OS::interrupt(InterruptCode::GPF);
-			break;
-
-			case VmemPageFault:
-				mylib_throw_exception_msg("Page fault not implemented");
-			break;
-		}
+		OS::interrupt(InterruptCode::CpuException);
 	}
 
 	this->dump();
@@ -109,7 +99,7 @@ void Cpu::force_interrupt (const InterruptCode interrupt_code)
 	this->interrupt(interrupt_code);
 }
 
-void Cpu::execute_r (const Mylib::BitSet<16> instruction)
+void Cpu::execute_r (const Instruction instruction)
 {
 	enum class OpcodeR : uint16_t {
 		Add = 0,
@@ -181,7 +171,7 @@ void Cpu::execute_r (const Mylib::BitSet<16> instruction)
 	}
 }
 
-void Cpu::execute_i (const Mylib::BitSet<16> instruction)
+void Cpu::execute_i (const Instruction instruction)
 {
 	enum class OpcodeI : uint16_t {
 		Jump = 0,

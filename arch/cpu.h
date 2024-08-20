@@ -33,29 +33,43 @@ public:
 
 	struct CpuException {
 		enum class Type : uint16_t {
-			VmemGPF           = 0,
-			VmemPageFault     = 1
+			VmemPageFault             = 0,
+			VmemGPFnotReadable        = 1,
+			VmemGPFnotWritable        = 2,
+			VmemGPFnotExecutable      = 3,
 		};
 		Type type;
 		uint16_t vaddr;
 	};
 
-	struct PageTableEntry {
-		enum class Flags : uint16_t {
-			Readable   = 0,
-			Writable   = 1,
-			Executable = 2,
-			Dirty      = 3,
-			Accessed   = 4,
-			Present    = 5
-		};
-		uint16_t paddr;
-		Mylib::BitSet<16> flags;
+	enum class PteFieldPos : uint16_t {
+		PhyAddr    = 0,
+		Present    = 12,
+		Readable   = 13,
+		Writable   = 14,
+		Executable = 15,
+		Dirty      = 16,
+		Accessed   = 17,
+		Foo        = 18,
 	};
 
+	enum class PteFieldSize : uint16_t {
+		PhyFrameID   = 12,
+		Present      = 1,
+		Readable     = 1,
+		Writable     = 1,
+		Executable   = 1,
+		Dirty        = 1,
+		Accessed     = 1,
+		Foo          = 14,
+	};
+
+	using PageTableEntry = Mylib::BitSet<32>;
 	using PageTable = std::array<PageTableEntry, Config::ptes_per_table>;
 
 private:
+	using Instruction = Mylib::BitSet<16>;
+
 	std::array<uint16_t, Config::nregs> gprs;
 	InterruptCode interrupt_code;
 	bool has_interrupt = false;
@@ -123,10 +137,10 @@ public:
 	void turn_off ();
 
 private:
-	void execute_r (const Mylib::BitSet<16> instruction);
-	void execute_i (const Mylib::BitSet<16> instruction);
+	void execute_r (const Instruction instruction);
+	void execute_i (const Instruction instruction);
 
-	inline uint16_t vmem_to_phys (const uint16_t vaddr)
+	inline uint16_t vmem_to_phys (const uint16_t vaddr, const MemAccessType access_type)
 	{
 		uint16_t paddr;
 
@@ -138,31 +152,40 @@ private:
 			case VmemMode::BaseLimit:
 				paddr = vaddr + this->vmem_paddr_init;
 
-				if (paddr > this->vmem_paddr_end) {
+				if (paddr > this->vmem_paddr_init || paddr > this->vmem_paddr_end) {
 					throw CpuException {
-						.type = CpuException::Type::VmemGPF,
+						.type = CpuException::Type::VmemPageFault,
 						.vaddr = vaddr
 						};
 				}
 				break;
 
 			case VmemMode::Paging:
-				mylib_throw_exception_msg("Paging not implemented");
+				PageTableEntry& pte = (*this->page_table)[vaddr >> Config::page_size_bits];
+
+				
+
 				break;
 		}
 
 		return paddr;
 	}
 
+	inline uint16_t vmem_read_instruction (const uint16_t vaddr)
+	{
+		const uint16_t paddr = this->vmem_to_phys(vaddr, MemAccessType::Execute);
+		return this->pmem_read(paddr);
+	}
+
 	inline uint16_t vmem_read (const uint16_t vaddr)
 	{
-		const uint16_t paddr = this->vmem_to_phys(vaddr);
+		const uint16_t paddr = this->vmem_to_phys(vaddr, MemAccessType::Read);
 		return this->pmem_read(paddr);
 	}
 
 	inline void vmem_write (const uint16_t vaddr, const uint16_t value)
 	{
-		const uint16_t paddr = this->vmem_to_phys(vaddr);
+		const uint16_t paddr = this->vmem_to_phys(vaddr, MemAccessType::Write);
 		this->pmem_write(paddr, value);
 	}
 };

@@ -14,8 +14,7 @@ enum class InterruptCode : uint16_t {
 	Keyboard         = 0,
 	Disk             = 1,
 	Timer            = 2,
-	GPF              = 3,
-	PageFault        = 4,
+	CpuException     = 3,
 };
 
 const char* InterruptCode_str (const InterruptCode code);
