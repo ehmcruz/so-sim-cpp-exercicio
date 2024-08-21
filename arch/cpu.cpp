@@ -241,28 +241,28 @@ uint16_t Cpu::vmem_to_phys (const uint16_t vaddr, const MemAccessType access_typ
 
 			// first, do some protection checks
 
-			if (pte[PteFieldPos::Present] == 0) {
+			if (pte[PteField::Present] == 0) {
 				throw CpuException {
 					.type = CpuException::Type::VmemPageFault,
 					.vaddr = vaddr
 					};
 			}
 
-			if (access_type == MemAccessType::Read && pte[PteFieldPos::Readable] == 0) {
+			if (access_type == MemAccessType::Read && pte[PteField::Readable] == 0) {
 				throw CpuException {
 					.type = CpuException::Type::VmemGPFnotReadable,
 					.vaddr = vaddr
 					};
 			}
 
-			if (access_type == MemAccessType::Write && pte[PteFieldPos::Writable] == 0) {
+			if (access_type == MemAccessType::Write && pte[PteField::Writable] == 0) {
 				throw CpuException {
 					.type = CpuException::Type::VmemGPFnotWritable,
 					.vaddr = vaddr
 					};
 			}
 
-			if (access_type == MemAccessType::Execute && pte[PteFieldPos::Executable] == 0) {
+			if (access_type == MemAccessType::Execute && pte[PteField::Executable] == 0) {
 				throw CpuException {
 					.type = CpuException::Type::VmemGPFnotExecutable,
 					.vaddr = vaddr
@@ -271,16 +271,15 @@ uint16_t Cpu::vmem_to_phys (const uint16_t vaddr, const MemAccessType access_typ
 
 			// everything ok, perform the address translation
 
-			pte_writeable[PteFieldPos::Accessed] = 1;
+			pte_writeable[PteField::Accessed] = 1;
 
 			if (access_type == MemAccessType::Write)
-				pte_writeable[PteFieldPos::Dirty] = 1;
+				pte_writeable[PteField::Dirty] = 1;
 
 			paddr = Mylib::set_bits(
 				vaddr,
-				PteFieldPos::PhyFrameID,
-				PteFieldSize::PhyFrameID,
-				pte(PteFieldPos::PhyFrameID, PteFieldSize::PhyFrameID)
+				PteField::PhyFrameID,
+				pte[PteField::PhyFrameID]
 				);
 		}
 		break;

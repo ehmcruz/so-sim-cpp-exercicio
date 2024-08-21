@@ -43,26 +43,15 @@ public:
 		uint16_t vaddr;
 	};
 
-	enum class PteFieldPos : uint16_t {
-		PhyFrameID   = 0,
-		Present      = 12,
-		Readable     = 13,
-		Writable     = 14,
-		Executable   = 15,
-		Dirty        = 16,
-		Accessed     = 17,
-		Foo          = 18,
-	};
-
-	enum class PteFieldSize : uint16_t {
-		PhyFrameID   = 12,
-		Present      = 1,
-		Readable     = 1,
-		Writable     = 1,
-		Executable   = 1,
-		Dirty        = 1,
-		Accessed     = 1,
-		Foo          = 14,
+	struct PteField {
+		constexpr static Mylib::BitField PhyFrameID = { 0, 12 };
+		constexpr static Mylib::BitField Present = { 12, 1 };
+		constexpr static Mylib::BitField Readable = { 13, 1 };
+		constexpr static Mylib::BitField Writable = { 14, 1 };
+		constexpr static Mylib::BitField Executable = { 15, 1 };
+		constexpr static Mylib::BitField Dirty = { 16, 1 };
+		constexpr static Mylib::BitField Accessed = { 17, 1 };
+		constexpr static Mylib::BitField Foo = { 18, 14 };
 	};
 
 	using PageTableEntry = Mylib::BitSet<32>;
