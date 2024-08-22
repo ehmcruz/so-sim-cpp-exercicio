@@ -2,9 +2,9 @@
 # https://github.com/ehmcruz/my-lib
 MYLIB = ../my-lib
 
-CC = gcc
+#CC = gcc
 CPP = g++
-LD = g++
+LD = $(CPP)
 FLAGS = -std=c++23
 
 ifdef CONFIG_TARGET_WINDOWS
@@ -35,8 +35,8 @@ OBJS = ${SRC:.cpp=.o}
 
 # implicit rules
 
-%.o : %.c $(headerfiles)
-	$(CC) -c $(CFLAGS) $< -o $@
+#%.o : %.c $(headerfiles)
+#	$(CC) -c $(CFLAGS) $< -o $@
 
 %.o : %.cpp $(headerfiles)
 	$(CPP) -c $(CPPFLAGS) $< -o $@

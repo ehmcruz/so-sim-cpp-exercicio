@@ -44,7 +44,7 @@ public:
 	{
 	}
 
-	virtual ~Device ();
+	virtual ~Device () = default;
 	virtual void run_cycle () = 0;
 };
 
@@ -58,7 +58,7 @@ public:
 	{
 	}
 
-	virtual ~IO_Device ();
+	virtual ~IO_Device () = default;
 	virtual uint16_t read (const uint16_t port) = 0;
 	virtual void write (const uint16_t port, const uint16_t value) = 0;
 };

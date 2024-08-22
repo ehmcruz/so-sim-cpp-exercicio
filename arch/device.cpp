@@ -25,16 +25,4 @@ const char* InterruptCode_str (const InterruptCode code)
 
 // ---------------------------------------
 
-Device::~Device ()
-{
-}
-
-// ---------------------------------------
-
-IO_Device::~IO_Device ()
-{
-}
-
-// ---------------------------------------
-
 } // end namespace

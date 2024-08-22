@@ -113,10 +113,10 @@ void Cpu::execute_r (const Instruction instruction)
 		Syscall = 63
 	};
 
-	const OpcodeR opcode = static_cast<OpcodeR>( instruction(9, 6) );
-	const uint16_t dest = instruction(6, 3);
-	const uint16_t op1 = instruction(3, 3);
-	const uint16_t op2 = instruction(0, 3);
+	const OpcodeR opcode = static_cast<OpcodeR>( instruction[{9, 6}] );
+	const uint16_t dest = instruction[{6, 3}];
+	const uint16_t op1 = instruction[{3, 3}];
+	const uint16_t op2 = instruction[{0, 3}];
 
 	switch (opcode) {
 		using enum OpcodeR;
@@ -182,9 +182,9 @@ void Cpu::execute_i (const Instruction instruction)
 		Mov = 3
 	};
 
-	const OpcodeI opcode = static_cast<OpcodeI>( instruction(13, 2) );
-	const uint16_t reg = instruction(10, 3);
-	const uint16_t imed = instruction(0, 9);
+	const OpcodeI opcode = static_cast<OpcodeI>( instruction[{13, 2}] );
+	const uint16_t reg = instruction[{10, 3}];
+	const uint16_t imed = instruction[{0, 9}];
 
 	switch (opcode) {
 		using enum OpcodeI;
