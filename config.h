@@ -21,6 +21,8 @@ namespace Config {
 
 	inline constexpr uint16_t virtual_mem_size_bits = 16;
 
+	inline constexpr uint32_t virtual_mem_size = 1 << virtual_mem_size_bits;
+
 	inline constexpr uint32_t page_size_bits = 4;
 
 	inline constexpr uint16_t page_size = 1 << page_size_bits;
