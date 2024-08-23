@@ -278,7 +278,8 @@ uint16_t Cpu::vmem_to_phys (const uint16_t vaddr, const MemAccessType access_typ
 
 			paddr = Mylib::set_bits(
 				vaddr,
-				PteField::PhyFrameID,
+				Config::page_size_bits,
+				Config::page_frame_id_bits,
 				pte[PteField::PhyFrameID]
 				);
 		}
