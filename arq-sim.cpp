@@ -46,6 +46,7 @@ int main (int argc, char **argv)
 	catch (const std::exception& e) {
 		endwin();
 		std::cout << "Exception happenned!" << std::endl << e.what() << std::endl;
+		Arch::Computer::get().get_terminal().dump(Arch::Terminal::Type::Kernel);
 		return EXIT_FAILURE;
 	}
 	catch (...) {

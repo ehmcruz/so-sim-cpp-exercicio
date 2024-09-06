@@ -13,6 +13,15 @@ namespace OS {
 
 // ---------------------------------------
 
+using VmemMode = Arch::Cpu::VmemMode;
+using CpuException = Arch::Cpu::CpuException;
+using PageTableEntry = Arch::Cpu::PageTableEntry;
+using PageTable = Arch::Cpu::PageTable;
+using InterruptCode = Arch::InterruptCode;
+using IO_Port = Arch::IO_Port;
+
+// ---------------------------------------
+
 inline bool terminal_is_backspace (const char c)
 {
 	return (c == 8);
