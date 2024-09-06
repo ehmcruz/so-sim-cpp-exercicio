@@ -37,7 +37,7 @@ public:
 			VmemGPFnotReadable        = 1,
 			VmemGPFnotWritable        = 2,
 			VmemGPFnotExecutable      = 3,
-			InvalidInstruction        = 4,
+			GPFinvalidInstruction     = 4,
 		};
 		Type type;
 		uint16_t vaddr;

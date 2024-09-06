@@ -168,7 +168,7 @@ void Cpu::execute_r (const Instruction instruction)
 
 		default:
 			throw CpuException {
-				.type = CpuException::Type::InvalidInstruction,
+				.type = CpuException::Type::GPFinvalidInstruction,
 				.vaddr = this->backup_pc
 				};
 	}
@@ -207,7 +207,7 @@ void Cpu::execute_i (const Instruction instruction)
 
 		default:
 			throw CpuException {
-				.type = CpuException::Type::InvalidInstruction,
+				.type = CpuException::Type::GPFinvalidInstruction,
 				.vaddr = this->backup_pc
 				};
 	}
