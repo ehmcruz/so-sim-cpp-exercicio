@@ -169,17 +169,25 @@ void Terminal::run_cycle ()
 uint16_t Terminal::read (const uint16_t port)
 {
 	const IO_Port port_enum = static_cast<IO_Port>(port);
+	uint16_t r;
 
 	switch (port_enum) {
 		using enum IO_Port;
 
+		case TerminalSet:
+			r = std::to_underlying(this->current_video);
+		break;
+		
 		case TerminalReadTypedChar:
 			this->has_char = false;
-			return this->typed_char;
+			r = this->typed_char;
+		break;
 
 		default:
 			mylib_throw_exception_msg("Terminal read invalid port ", port);
 	}
+
+	return r;
 }
 
 void Terminal::write (const uint16_t port, const uint16_t value)
@@ -194,7 +202,7 @@ void Terminal::write (const uint16_t port, const uint16_t value)
 		break;
 
 		case TerminalUpload: {
-			char str[2] = { static_cast<char>(value), 0 };
+			const char str[2] = { static_cast<char>(value), 0 };
 			this->videos[ std::to_underlying(this->current_video) ].print(str);
 		}
 		break;

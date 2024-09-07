@@ -19,6 +19,9 @@ using PageTableEntry = Arch::Cpu::PageTableEntry;
 using PageTable = Arch::Cpu::PageTable;
 using InterruptCode = Arch::InterruptCode;
 using IO_Port = Arch::IO_Port;
+using Terminal = Arch::Terminal::Type;
+using DiskState = Arch::Disk::State;
+using DiskCmd = Arch::Disk::Cmd;
 
 // ---------------------------------------
 
