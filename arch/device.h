@@ -32,7 +32,8 @@ enum class IO_Port : uint16_t {
 	TimerInterruptCycles      = 10,  // read/write
 	DiskCmd                   = 20,  // write
 	DiskData		          = 21,  // read/write
-	DiskState                 = 22,  // read
+	DiskFileID		          = 22,  // read/write
+	DiskState                 = 23,  // read
 };
 
 // ---------------------------------------

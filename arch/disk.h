@@ -39,6 +39,7 @@ public:
 
 private:
 	struct FileDescriptor {
+		uint16_t id;
 		std::string fname;
 		std::fstream file;
 	};

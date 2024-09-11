@@ -15,6 +15,7 @@ Disk::Disk (Computer& computer)
 {
 	this->computer.set_io_port(IO_Port::DiskCmd, this);
 	this->computer.set_io_port(IO_Port::DiskData, this);
+	this->computer.set_io_port(IO_Port::DiskFile, this);
 	this->computer.set_io_port(IO_Port::DiskState, this);
 }
 
@@ -84,6 +85,10 @@ uint16_t Disk::read (const uint16_t port)
 			r = this->process_data_read();
 		break;
 
+		case DiskFileID:
+			r = (this->current_file_descriptor) ? this->current_file_descriptor->id : 0;
+		break;
+
 		case DiskState:
 			r = static_cast<uint16_t>(this->state);
 		break;
@@ -110,6 +115,16 @@ void Disk::write (const uint16_t port, const uint16_t value)
 			this->process_data_write(value);
 		break;
 
+		case DiskFileID: {
+			auto it = this->file_descriptors.find(value);
+
+			if (it == this->file_descriptors.end())
+				this->current_file_descriptor = nullptr;
+			else
+				this->current_file_descriptor = &it->second;
+		}
+		break;
+
 		default:
 			mylib_throw_exception_msg("Disk read invalid port ", port);
 	}
@@ -130,12 +145,12 @@ void Disk::process_cmd (const uint16_t cmd_)
 
 		case OpenFile: {
 			FileDescriptor desc;
-			const uint16_t id = this->next_id++;
-			mylib_assert_exception(id < std::numeric_limits<uint16_t>::max())
+			desc.id = this->next_id++;
+			mylib_assert_exception(desc.id < std::numeric_limits<uint16_t>::max())
 			desc.fname = std::move(this->fname);
 			desc.file.open(fname.data(), std::ios::binary | std::ios_base::in);
 			
-			auto pair = this->file_descriptors.insert(std::make_pair(id, std::move(desc)));
+			auto pair = this->file_descriptors.insert(std::make_pair(desc.id, std::move(desc)));
 			
 			if (!pair.second)
 				mylib_throw_exception_msg("file descriptor already exists");
