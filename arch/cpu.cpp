@@ -297,6 +297,21 @@ void Cpu::dump () const
 	dprintln();
 }
 
+const char* enum_class_to_str (const Cpu::CpuException::Type value)
+{
+	static constexpr auto strs = std::to_array<const char*>({
+			"VmemPageFault",
+			"VmemGPFnotReadable",
+			"VmemGPFnotWritable",
+			"VmemGPFnotExecutable",
+			"GPFinvalidInstruction",
+		});
+
+	mylib_assert_exception_msg(std::to_underlying(value) < strs.size(), "invalid value ", std::to_underlying(value))
+
+	return strs[ std::to_underlying(value) ];
+}
+
 // ---------------------------------------
 
 } // end namespace

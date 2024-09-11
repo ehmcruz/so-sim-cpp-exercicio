@@ -8,22 +8,11 @@
 
 #include "../config.h"
 #include "../arch/arch.h"
+#include "os.h"
 
 namespace OS {
 
-// ---------------------------------------
-
-using VmemMode = Arch::Cpu::VmemMode;
-using CpuException = Arch::Cpu::CpuException;
-using PageTableEntry = Arch::Cpu::PageTableEntry;
-using PageTable = Arch::Cpu::PageTable;
-using InterruptCode = Arch::InterruptCode;
-using IO_Port = Arch::IO_Port;
-using Terminal = Arch::Terminal::Type;
-using DiskState = Arch::Disk::State;
-using DiskCmd = Arch::Disk::Cmd;
-
-// ---------------------------------------
+// ---------------------------------------s
 
 inline bool terminal_is_backspace (const char c)
 {
@@ -45,23 +34,23 @@ inline bool terminal_is_return (const char c)
 	return (c == '\n');
 }
 
-inline void terminal_print_str (Arch::Cpu *cpu, const Arch::Terminal::Type video, const std::string_view str)
+inline void terminal_print_str (Arch::Cpu *cpu, const Terminal video, const std::string_view str)
 {
-	cpu->write_io(Arch::IO_Port::TerminalSet, static_cast<uint16_t>(video));
+	cpu->write_io(IO_Port::TerminalSet, static_cast<uint16_t>(video));
 
 	for (const char c : str)
-		cpu->write_io(Arch::IO_Port::TerminalUpload, static_cast<uint16_t>(c));
+		cpu->write_io(IO_Port::TerminalUpload, static_cast<uint16_t>(c));
 }
 
 template <typename... Types>
-void terminal_print (Arch::Cpu *cpu, const Arch::Terminal::Type video, Types&&... vars)
+void terminal_print (Arch::Cpu *cpu, const Terminal video, Types&&... vars)
 {
 	const std::string str = Mylib::build_str_from_stream(vars...);
 	terminal_print_str(cpu, video, str);
 }
 
 template <typename... Types>
-void terminal_println (Arch::Cpu *cpu, const Arch::Terminal::Type video, Types&&... vars)
+void terminal_println (Arch::Cpu *cpu, const Terminal video, Types&&... vars)
 {
 	terminal_print(cpu, video, vars..., '\n');
 }

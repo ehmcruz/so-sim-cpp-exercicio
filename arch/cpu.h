@@ -154,6 +154,16 @@ private:
 
 // ---------------------------------------
 
+const char* enum_class_to_str (const Cpu::CpuException::Type value);
+
+inline std::ostream& operator << (std::ostream& out, const Cpu::CpuException::Type value)
+{
+	out << enum_class_to_str(value);
+	return out;
+}
+
+// ---------------------------------------
+
 } // end namespace
 
 #endif

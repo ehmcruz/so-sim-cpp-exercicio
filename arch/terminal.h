@@ -55,8 +55,8 @@ class Terminal : public IO_Device
 {
 public:
 	enum class Type : uint16_t {
-		Arch        = 0,
-		Kernel      = 1,
+		Kernel      = 0,
+		Arch        = 1,
 		Command     = 2,
 		App         = 3,
 

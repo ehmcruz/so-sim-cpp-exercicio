@@ -17,7 +17,13 @@ enum class InterruptCode : uint16_t {
 	CpuException     = 3,
 };
 
-const char* InterruptCode_str (const InterruptCode code);
+const char* enum_class_to_str (const InterruptCode code);
+
+inline std::ostream& operator << (std::ostream& out, const InterruptCode value)
+{
+	out << enum_class_to_str(value);
+	return out;
+}
 
 enum class IO_Port : uint16_t {
 	TerminalSet               = 0,   // write

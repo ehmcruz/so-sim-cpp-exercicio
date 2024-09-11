@@ -13,9 +13,21 @@ namespace OS {
 
 // ---------------------------------------
 
+using VmemMode = Arch::Cpu::VmemMode;
+using CpuException = Arch::Cpu::CpuException;
+using PageTableEntry = Arch::Cpu::PageTableEntry;
+using PageTable = Arch::Cpu::PageTable;
+using InterruptCode = Arch::InterruptCode;
+using IO_Port = Arch::IO_Port;
+using Terminal = Arch::Terminal::Type;
+using DiskState = Arch::Disk::State;
+using DiskCmd = Arch::Disk::Cmd;
+
+// ---------------------------------------
+
 void boot (Arch::Cpu *cpu);
 
-void interrupt (const Arch::InterruptCode interrupt);
+void interrupt (const InterruptCode interrupt);
 
 void syscall ();
 
