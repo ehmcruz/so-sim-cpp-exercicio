@@ -34,6 +34,17 @@ void Disk::run_cycle ()
 	switch (state) {
 		using enum State;
 
+		case ReadingFile:
+			if (this->count >= Config::disk_interrupt_cycles) {
+				if (this->computer.get_cpu().interrupt(InterruptCode::Disk)) {
+					this->count = 0;
+					this->state = State::UploadingFileSize;
+				}
+			}
+			else
+				this->count++;
+		break;
+
 		default: ;
 	}
 }
@@ -168,10 +179,7 @@ void Disk::process_cmd (const uint16_t cmd_)
 
 			const auto it = this->file_descriptors.find(this->current_file_descriptor->id);
 
-			if (it == this->file_descriptors.end()) {
-				this->error = Error::InvalidFileDescriptor;
-				return;
-			}
+			mylib_assert_exception(it != this->file_descriptors.end())
 
 			FileDescriptor& desc = *this->current_file_descriptor;
 			desc.file.close();
@@ -181,6 +189,17 @@ void Disk::process_cmd (const uint16_t cmd_)
 			this->current_file_descriptor = nullptr;
 			this->error = Error::NoError;
 		}
+		break;
+
+		case ReadFile:
+			if (this->current_file_descriptor == nullptr) {
+				this->error = Error::InvalidFileDescriptor;
+				return;
+			}
+
+			this->state = State::ReadingFile;
+			this->count = 0;
+			this->error = Error::NoError;
 		break;
 
 		case GetFileSize: {
@@ -210,6 +229,49 @@ uint16_t Disk::process_data_read ()
 
 		case Idle:
 			r = this->data_result;
+		break;
+
+		case UploadingFileSize: {
+			if (this->current_file_descriptor == nullptr) {
+				this->error = Error::InvalidFileDescriptor;
+				r = 0;
+				break;
+			}
+
+			// here, we actually read the file
+
+			const auto size_to_read = this->data_written;
+
+			this->buffer.resize(size_to_read);
+
+			// now, read the file
+
+			auto& file = this->current_file_descriptor->file;
+
+			file.read(reinterpret_cast<char*>(this->buffer.data()), size_to_read);
+
+			const auto amount_read = file.gcount();
+			this->buffer.resize(amount_read);
+			r = amount_read;
+
+			this->error = Error::NoError;
+
+			if (amount_read > 0) {
+				this->state = State::UploadingFile;
+				this->count = 0;
+			}
+			else
+				this->state = State::Idle;
+		}
+		break;
+
+		case UploadingFile:
+			mylib_assert_exception(this->count < this->buffer.size())
+			
+			r = this->buffer[this->count++];
+
+			if (this->count == this->buffer.size())
+				this->state = State::Idle;
 		break;
 
 		default:

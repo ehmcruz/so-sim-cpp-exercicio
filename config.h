@@ -11,7 +11,7 @@ namespace Config {
 
 	inline constexpr uint16_t timer_default_interrupt_cycles = 1024;
 
-	inline constexpr uint32_t disk_interrupt_cycles = 1024;
+	inline constexpr uint32_t disk_interrupt_cycles = 1024 * 10;
 
 	// ---------------------------------------
 

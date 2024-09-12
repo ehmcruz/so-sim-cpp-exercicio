@@ -16,6 +16,13 @@
 
 // ---------------------------------------
 
+void Lib::die ()
+{
+	endwin();
+	Arch::Computer::get().get_terminal().dump(Arch::Terminal::Type::Kernel);
+	std::exit(EXIT_FAILURE);
+}
+
 static void interrupt_handler (int dummy)
 {
 	mylib_throw_exception_msg("received interrupt signal");

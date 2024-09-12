@@ -16,6 +16,9 @@ uint32_t get_file_size_words (const std::string_view fname);
 // raises Mylib::Exception in case of error
 std::vector<uint16_t> load_from_disk_to_16bit_buffer (const std::string_view fname);
 
+// implemented in arq-sim.cpp
+void die ();
+
 // ---------------------------------------
 
 }
