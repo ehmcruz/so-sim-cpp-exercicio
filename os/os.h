@@ -22,6 +22,7 @@ using IO_Port = Arch::IO_Port;
 using Terminal = Arch::Terminal::Type;
 using DiskState = Arch::Disk::State;
 using DiskCmd = Arch::Disk::Cmd;
+using DiskError = Arch::Disk::Error;
 
 // ---------------------------------------
 

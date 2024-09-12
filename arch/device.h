@@ -34,6 +34,7 @@ enum class IO_Port : uint16_t {
 	DiskData		          = 21,  // read/write
 	DiskFileID		          = 22,  // read/write
 	DiskState                 = 23,  // read
+	DiskError                 = 24,  // read
 };
 
 // ---------------------------------------

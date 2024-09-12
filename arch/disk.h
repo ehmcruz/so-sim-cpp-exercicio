@@ -31,10 +31,16 @@ public:
 	enum class State : uint16_t {
 		Idle                    = 0,
 		SettingFname            = 1,
-		WaitingReadSize         = 2,
-		WaitingRead             = 3,
-		ReadingReadSize         = 4,
-		ReadingFile             = 5,
+		ReadingFile             = 2,
+		UploadingFileSize       = 3,
+		UploadingFile           = 4,
+	};
+
+	enum class Error : uint16_t {
+		NoError				    = 0,
+		CannotOpenFile          = 1,
+		FileAlreadyOpen         = 2,
+		InvalidFileDescriptor   = 3,
 	};
 
 private:
@@ -46,14 +52,16 @@ private:
 
 private:
 	std::unordered_map<uint16_t, FileDescriptor> file_descriptors;
-	uint32_t count = 0;
-	uint16_t next_id = 1;
+	uint32_t count = 0; // used for read/write operations, to count the amount of cycles
+	uint16_t next_id = 100;
 	State state = State::Idle;
 	std::string fname;
 	uint16_t data_written;
+	uint16_t data_result;
 	std::vector<uint8_t> buffer;
 	uint32_t buffer_pos;
 	FileDescriptor *current_file_descriptor = nullptr;
+	Error error = Error::NoError;
 
 public:
 	Disk (Computer& computer);

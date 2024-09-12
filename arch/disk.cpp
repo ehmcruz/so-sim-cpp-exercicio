@@ -15,8 +15,9 @@ Disk::Disk (Computer& computer)
 {
 	this->computer.set_io_port(IO_Port::DiskCmd, this);
 	this->computer.set_io_port(IO_Port::DiskData, this);
-	this->computer.set_io_port(IO_Port::DiskFile, this);
+	this->computer.set_io_port(IO_Port::DiskFileID, this);
 	this->computer.set_io_port(IO_Port::DiskState, this);
+	this->computer.set_io_port(IO_Port::DiskError, this);
 }
 
 Disk::~Disk ()
@@ -32,42 +33,6 @@ void Disk::run_cycle ()
 {
 	switch (state) {
 		using enum State;
-
-		case WaitingRead:
-			if (this->count >= Config::disk_interrupt_cycles) {
-				auto& file = this->current_file_descriptor->file;
-				const uint16_t request_size = this->data_written;
-
-				const auto fpos = file.tellg();
-				file.seekg(0, std::ios::end);
-				const auto fsize = file.tellg();
-				file.seekg(fpos);
-
-				const uint16_t available = fsize - fpos;
-
-				uint16_t must_read;
-
-				if (request_size > available)
-					must_read = available;
-				else
-					must_read = request_size;
-
-				this->buffer.resize(must_read);
-
-				file.read(reinterpret_cast<char*>(this->buffer.data()), must_read);
-
-				const auto readed = file.gcount();
-				if (readed < must_read)
-					this->buffer.resize(readed);
-
-				this->state = State::ReadingReadSize;
-			}
-			else
-				this->count++;
-		break;
-
-		case ReadingReadSize:
-			this->computer.get_cpu().interrupt(InterruptCode::Disk);
 
 		default: ;
 	}
@@ -86,11 +51,22 @@ uint16_t Disk::read (const uint16_t port)
 		break;
 
 		case DiskFileID:
-			r = (this->current_file_descriptor) ? this->current_file_descriptor->id : 0;
+			if (this->current_file_descriptor == nullptr) {
+				r = 0;
+				this->error = Error::InvalidFileDescriptor;
+			}
+			else {
+				r = this->current_file_descriptor->id;
+				this->error = Error::NoError;
+			}
 		break;
 
 		case DiskState:
 			r = static_cast<uint16_t>(this->state);
+		break;
+
+		case DiskError:
+			r = std::to_underlying(this->error);
 		break;
 
 		default:
@@ -116,12 +92,16 @@ void Disk::write (const uint16_t port, const uint16_t value)
 		break;
 
 		case DiskFileID: {
-			auto it = this->file_descriptors.find(value);
+			const auto it = this->file_descriptors.find(value);
 
-			if (it == this->file_descriptors.end())
+			if (it == this->file_descriptors.end()) {
 				this->current_file_descriptor = nullptr;
-			else
+				this->error = Error::InvalidFileDescriptor;
+			}
+			else {
 				this->current_file_descriptor = &it->second;
+				this->error = Error::NoError;
+			}
 		}
 		break;
 
@@ -134,6 +114,9 @@ void Disk::process_cmd (const uint16_t cmd_)
 {
 	const Cmd cmd = static_cast<Cmd>(cmd_);
 
+	if (this->state != State::Idle)
+		return;
+
 	switch (cmd)
 	{
 		using enum Cmd;
@@ -144,11 +127,27 @@ void Disk::process_cmd (const uint16_t cmd_)
 		break;
 
 		case OpenFile: {
+			// check if file is already open
+
+			for (const auto& it: this->file_descriptors) {
+				if (it.second.fname == this->fname) {
+					this->current_file_descriptor = nullptr;
+					this->error = Error::FileAlreadyOpen;
+					return;
+				}
+			}
+
 			FileDescriptor desc;
 			desc.id = this->next_id++;
 			mylib_assert_exception(desc.id < std::numeric_limits<uint16_t>::max())
 			desc.fname = std::move(this->fname);
-			desc.file.open(fname.data(), std::ios::binary | std::ios_base::in);
+			desc.file.open(desc.fname.data(), std::ios::binary | std::ios_base::in);
+
+			if (!desc.file.is_open()) {
+				this->current_file_descriptor = nullptr;
+				this->error = Error::CannotOpenFile;
+				return;
+			}
 			
 			auto pair = this->file_descriptors.insert(std::make_pair(desc.id, std::move(desc)));
 			
@@ -157,28 +156,43 @@ void Disk::process_cmd (const uint16_t cmd_)
 
 			this->current_file_descriptor = &pair.first->second;
 
-			this->state = State::Idle;
+			this->error = Error::NoError;
 		};
 		break;
 
 		case CloseFile: {
-			auto it = this->file_descriptors.find(this->data_written);
-			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
-			FileDescriptor& desc = it->second;
+			if (this->current_file_descriptor == nullptr) {
+				this->error = Error::InvalidFileDescriptor;
+				return;
+			}
+
+			const auto it = this->file_descriptors.find(this->current_file_descriptor->id);
+
+			if (it == this->file_descriptors.end()) {
+				this->error = Error::InvalidFileDescriptor;
+				return;
+			}
+
+			FileDescriptor& desc = *this->current_file_descriptor;
 			desc.file.close();
+
 			this->file_descriptors.erase(it);
+			
 			this->current_file_descriptor = nullptr;
+			this->error = Error::NoError;
 		}
 		break;
 
-		case ReadFile: {
-			this->state = State::WaitingReadSize;
-			this->count = 0;
-			auto it = this->file_descriptors.find(this->data_written);
+		case GetFileSize: {
+			if (this->current_file_descriptor == nullptr) {
+				this->error = Error::InvalidFileDescriptor;
+				return;
+			}
 
-			mylib_assert_exception_msg(it != this->file_descriptors.end(), "file descriptor not found")
+			const auto size = get_file_size(this->current_file_descriptor->file);
 
-			this->current_file_descriptor = &it->second;
+			this->data_result = size;
+			this->error = Error::NoError;
 		}
 		break;
 
@@ -194,18 +208,9 @@ uint16_t Disk::process_data_read ()
 	switch (this->state) {
 		using enum State;
 
-		case ReadingReadSize:
-			r = this->buffer.size();
-			this->buffer_pos = 0;
-			this->state = ReadingFile;
+		case Idle:
+			r = this->data_result;
 		break;
-
-		case ReadingFile:
-			mylib_assert_exception_msg(this->buffer_pos < this->buffer.size(), "buffer is empty")
-			r = this->buffer[this->buffer_pos++];
-
-			if (this->buffer_pos == this->buffer.size())
-				this->state = Idle;
 
 		default:
 			mylib_throw_exception_msg("Disk invalid state ", static_cast<uint16_t>(this->state));
@@ -231,11 +236,6 @@ void Disk::process_data_write (const uint16_t value)
 			else
 				this->fname += c;
 		}
-		break;
-
-		case WaitingReadSize:
-			this->data_written = value;
-			this->state = State::WaitingRead;
 		break;
 
 		default:
