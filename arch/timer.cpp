@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "timer.h"
 #include "computer.h"
 #include "cpu.h"
@@ -9,10 +11,17 @@ namespace Arch {
 
 // ---------------------------------------
 
+using Clock = std::chrono::steady_clock;
+
+static const auto start_time = Clock::now();
+
+// ---------------------------------------
+
 Timer::Timer (Computer& computer)
 	: IO_Device(computer)
 {
 	this->computer.set_io_port(IO_Port::TimerInterruptCycles, this);
+	this->computer.set_io_port(IO_Port::TimerGetTimeSeconds, this);
 }
 
 void Timer::run_cycle ()
@@ -35,6 +44,12 @@ uint16_t Timer::read (const uint16_t port)
 
 		case TimerInterruptCycles:
 			r = this->timer_interrupt_cycles;
+		break;
+
+		case TimerGetTimeSeconds:
+			r = std::chrono::duration_cast<std::chrono::seconds>(
+				Clock::now() - start_time
+			).count();
 		break;
 
 		default:

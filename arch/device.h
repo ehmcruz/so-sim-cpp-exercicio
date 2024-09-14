@@ -30,6 +30,7 @@ enum class IO_Port : uint16_t {
 	TerminalUpload            = 1,   // write
 	TerminalReadTypedChar     = 2,   // read
 	TimerInterruptCycles      = 10,  // read/write
+	TimerGetTimeSeconds       = 11,  // read
 	DiskCmd                   = 20,  // write
 	DiskData		          = 21,  // read/write
 	DiskFileID		          = 22,  // read/write
