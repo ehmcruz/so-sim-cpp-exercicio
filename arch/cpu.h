@@ -65,14 +65,14 @@ private:
 	bool has_interrupt = false;
 	uint16_t backup_pc;
 
-	OO_ENCAPSULATE_SCALAR(uint16_t, pc)
-	OO_ENCAPSULATE_SCALAR_INIT(VmemMode, vmem_mode, VmemMode::Disabled)
-	OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_init, 0)
-	OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_end, Config::phys_mem_size_words-1)
-	OO_ENCAPSULATE_PTR_INIT(PageTable*, page_table, nullptr)
-	OO_ENCAPSULATE_OBJ_READONLY(CpuException, cpu_exception)
+	MYLIB_OO_ENCAPSULATE_SCALAR(uint16_t, pc)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(VmemMode, vmem_mode, VmemMode::Disabled)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_init, 0)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_end, Config::phys_mem_size_words-1)
+	MYLIB_OO_ENCAPSULATE_PTR_INIT(PageTable*, page_table, nullptr)
+	MYLIB_OO_ENCAPSULATE_OBJ_READONLY(CpuException, cpu_exception)
 
-	OO_ENCAPSULATE_SCALAR_INIT_READONLY(uint16_t, pmem_size_words, Config::phys_mem_size_words)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT_READONLY(uint16_t, pmem_size_words, Config::phys_mem_size_words)
 
 public:
 	Cpu (Computer& computer);

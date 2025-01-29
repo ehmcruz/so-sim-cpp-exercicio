@@ -52,7 +52,7 @@ void VideoOutput::print (const std::string_view str)
 		if (str[i] == '\n') {
 			// fill the rest of the line with spaces
 			for (uint32_t i = this->x; i < ncols; i++)
-				this->buffer(this->y, i) = ' ';
+				this->buffer[this->y, i] = ' ';
 			
 			this->x = 0;
 			this->y++;
@@ -66,10 +66,10 @@ void VideoOutput::print (const std::string_view str)
 			this->x = 0;
 
 			for (uint32_t i = 0; i < ncols; i++)
-				this->buffer(this->y, i) = ' ';
+				this->buffer[this->y, i] = ' ';
 		}
 		else {
-			this->buffer(this->y, this->x) = str[i];
+			this->buffer[this->y, this->x] = str[i];
 			this->x++;
 		}
 	}
@@ -84,12 +84,12 @@ void VideoOutput::roll ()
 
 	for (uint32_t row = 1; row < nrows; row++) {
 		for (uint32_t col = 0; col < ncols; col++)
-			this->buffer(row-1, col) = this->buffer(row, col);
+			this->buffer[row-1, col] = this->buffer[row, col];
 	}
 
 	// clear last line
 	for (uint32_t col = 0; col < ncols; col++)
-		this->buffer(nrows-1, col) = ' ';
+		this->buffer[nrows-1, col] = ' ';
 }
 
 void VideoOutput::update ()
@@ -99,7 +99,7 @@ void VideoOutput::update ()
 
 	for (uint32_t row = 0; row < nrows; row++) {
 		for (uint32_t col = 0; col < ncols; col++)
-			mvwprintw(this->win, row+1, col+1, "%c", this->buffer(row, col));
+			mvwprintw(this->win, row+1, col+1, "%c", this->buffer[row, col]);
 	}
 
 	refresh();
@@ -113,7 +113,7 @@ void VideoOutput::dump () const
 
 	for (uint32_t row = 0; row < nrows; row++) {
 		for (uint32_t col = 0; col < ncols; col++)
-			std::cout << this->buffer(row, col);
+			std::cout << this->buffer[row, col];
 		std::cout << std::endl;
 	}
 }

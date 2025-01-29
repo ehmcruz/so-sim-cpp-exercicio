@@ -58,7 +58,7 @@ void Cpu::run_cycle ()
 	try {
 		const Instruction instruction = this->vmem_read_instruction(this->pc);
 
-		dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.underlying(), std::dec, " binary ", instruction.underlying());
+		dprintln("\tPC = ", this->pc, " instr 0x", std::hex, instruction.to_underlying(), std::dec, " binary ", instruction.to_underlying());
 
 		this->pc++;
 
