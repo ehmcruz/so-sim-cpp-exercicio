@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string_view>
+#include <fstream>
 
 #include <my-lib/std.h>
 #include <my-lib/macros.h>
@@ -12,16 +13,17 @@ namespace Lib {
 
 static uint32_t get_file_size_bytes (const std::string_view fname)
 {
-	FILE *fp;
+	std::ifstream file;
 	
-	fp = fopen(fname.data(), "rb");
-	
-	mylib_assert_exception_msg(fp != nullptr, "cannot load file ", fname)
+	file.open(fname.data(), std::ios::binary | std::ios::in);
 
-	fseek(fp, 0, SEEK_END);
-	const int32_t bsize = ftell(fp);
+	if (!file.is_open())
+		throw Mylib::Exception(Mylib::build_str_from_stream("cannot load file ", fname));
 
-	fclose(fp);
+	file.seekg(0, std::ios::end);
+	const auto bsize = file.tellg();
+
+	file.close();
 
 	return bsize;
 }
@@ -43,29 +45,33 @@ uint32_t get_file_size_words (const std::string_view fname)
 
 static bool load_from_disk_to_buffer (const std::string_view fname, void *ptr, const uint32_t mem_size_bytes)
 {
-	FILE *fp;
+	std::ifstream file;
 	
-	fp = fopen(fname.data(), "rb");
+	file.open(fname.data(), std::ios::binary | std::ios::in);
 	
-	if (fp == nullptr)
+	if (!file.is_open())
 		return false;
-
-	fseek(fp, 0, SEEK_END);
-	const uint32_t bsize = ftell(fp);
+	
+	file.seekg(0, std::ios::end);
+	const auto bsize = file.tellg();
 
 	if (bsize > mem_size_bytes) {
-		fclose(fp);
-		return false;
-	}
-	
-	rewind(fp);
-
-	if (fread(ptr, 1, bsize, fp) != bsize) {
-		fclose(fp);
+		file.close();
 		return false;
 	}
 
-	fclose(fp);
+	file.seekg(0, std::ios::beg);
+
+	file.read(static_cast<char *>(ptr), bsize);
+
+	const auto amount_read = file.gcount();
+
+	if (amount_read != bsize) {
+		file.close();
+		return false;
+	}
+
+	file.close();
 
 	return true;
 }
