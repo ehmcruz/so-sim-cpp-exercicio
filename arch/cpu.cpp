@@ -223,14 +223,14 @@ uint16_t Cpu::vmem_to_phys (const uint16_t vaddr, const MemAccessType access_typ
 		break;
 
 		case VmemMode::BaseLimit:
-			paddr = vaddr + this->vmem_paddr_init;
-
-			if (paddr > this->vmem_paddr_end) {
+			if (vaddr >= this->vmem_size) {
 				throw CpuException {
 					.type = CpuException::Type::VmemPageFault,
 					.vaddr = vaddr
 					};
 			}
+
+			paddr = vaddr + this->vmem_paddr_base;
 		break;
 
 		case VmemMode::Paging: {

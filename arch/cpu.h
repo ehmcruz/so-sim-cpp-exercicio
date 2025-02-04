@@ -67,8 +67,8 @@ private:
 
 	MYLIB_OO_ENCAPSULATE_SCALAR(uint16_t, pc)
 	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(VmemMode, vmem_mode, VmemMode::Disabled)
-	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_init, 0)
-	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_end, Config::phys_mem_size_words-1)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_paddr_base, 0)
+	MYLIB_OO_ENCAPSULATE_SCALAR_INIT(uint16_t, vmem_size, Config::phys_mem_size_words)
 	MYLIB_OO_ENCAPSULATE_PTR_INIT(PageTable*, page_table, nullptr)
 	MYLIB_OO_ENCAPSULATE_OBJ_READONLY(CpuException, cpu_exception)
 
