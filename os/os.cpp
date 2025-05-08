@@ -25,7 +25,7 @@ void boot (Arch::Cpu *cpu)
 
 // ---------------------------------------
 
-void interrupt (const Arch::InterruptCode interrupt)
+void interrupt (const InterruptCode interrupt)
 {
 
 }
